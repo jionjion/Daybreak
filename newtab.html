@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Daybreak 晨屿</title>
+  <link rel="icon" href="assets/icon32.png">
+  <link rel="stylesheet" href="widgets/favorites.css">
+  <link rel="stylesheet" href="widgets/library.css">
+  <link rel="stylesheet" href="widgets/weather.css">
+  <link rel="stylesheet" href="widgets/settings.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="widgets/home.css">
+  <link rel="stylesheet" href="widgets/productivity.css">
+  <link rel="stylesheet" href="widgets/ai.css">
+  <link rel="stylesheet" href="widgets/wallpapers.css">
+  <link rel="stylesheet" href="widgets/webdav.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <div id="wall-layer" class="wall-layer" aria-hidden="true"></div>
+  <a class="skip" href="#main">跳到主要内容</a>
+  <header class="topbar">
+    <div class="frame topbar-inner">
+      <a class="brand" href="#home" aria-label="Daybreak 晨屿首页"><img src="assets/icon48.png" width="37" height="37" alt=""><span>Daybreak</span><b>晨屿</b></a>
+      <nav class="nav" aria-label="主导航">
+        <a href="#home" aria-current="page"><i data-icon="home"></i>今日</a>
+        <a href="#favorites"><i data-icon="star"></i>收藏</a>
+        <a href="#bookmarks"><i data-icon="bookmark"></i>书签</a>
+        <a href="#history"><i data-icon="history"></i>历史记录</a>
+        <a href="#tools"><i data-icon="tools"></i>工具</a>
+      </nav>
+      <a href="#settings" class="settings-link" aria-label="个人设置"><i data-icon="settings"></i><span>个人设置</span></a>
+    </div>
+  </header>
+  <main id="main" class="frame main" tabindex="-1">
+    <section id="home-view" aria-label="今日">
+      <nav id="quick-strip" aria-label="浏览器快捷栏" hidden></nav>
+      <div class="hero" id="hero" data-theme="lake">
+        <div class="hero-inner">
+          <p class="hero-date" id="hero-date"></p>
+          <h1 class="time" aria-label="当前时间"><time id="time"></time><span id="period"></span></h1>
+          <div class="search-block">
+            <div class="search-toolbar">
+              <div class="search-modes" role="group" aria-label="搜索模式">
+                <button type="button" id="web-mode" aria-pressed="true">网页搜索</button>
+                <button type="button" id="ai-mode" aria-pressed="false">AI 搜索</button>
+              </div>
+              <select id="engine-switch" aria-label="搜索引擎"></select>
+            </div>
+            <form id="search-form" class="search-form" role="search">
+              <i id="search-icon" data-icon="search"></i>
+              <input id="query" type="text" autocomplete="off" placeholder="搜索或输入网址" aria-label="搜索或输入网址" required>
+              <kbd aria-hidden="true">/</kbd>
+              <button id="search-submit" type="submit" aria-label="开始搜索"><i data-icon="arrow"></i></button>
+            </form>
+            <div class="search-foot">
+              <div id="search-categories"></div>
+              <a class="chat-jump" href="#ai">打开 AI 对话<i data-icon="chevron"></i></a>
+            </div>
+          </div>
+        </div>
+        <div class="wall-actions"><button id="wall-next" type="button" aria-label="切换到下一张壁纸" title="切换到下一张壁纸"><i data-icon="rotate"></i></button><a class="hero-edit" href="#settings/wallpaper" aria-label="更换首页背景" title="更换首页背景"><i data-icon="image"></i></a></div>
+        <p class="wall-message" role="status"></p>
+      </div>
+      <div id="system-shortcuts" aria-label="内置工具"></div>
+      <section class="favorites-band" aria-labelledby="quick-heading">
+        <div class="section-head"><h2 id="quick-heading">网页收藏</h2><div id="quick-actions"></div></div>
+        <div id="favorites-compact"></div>
+      </section>
+      <div class="widget-grid">
+        <section class="widget-card card-tasks" id="tasks-card" aria-label="待办事项"><i class="card-icon" data-icon="check"></i><div id="tasks-content"></div></section>
+        <section class="widget-card card-notes" id="notes-card" aria-labelledby="notes-heading"><div class="card-head"><i class="card-icon" data-icon="note"></i><h2 id="notes-heading">笔记</h2></div><div id="notes-content"></div></section>
+        <section class="widget-card card-weather" id="weather-card" aria-labelledby="weather-heading"><div class="card-head"><i class="card-icon" data-icon="weather"></i><h2 id="weather-heading">天气</h2></div><div id="weather-content"></div></section>
+      </div>
+    </section>
+    <section id="detail-view" aria-labelledby="detail-title" hidden>
+      <div class="page-head"><div class="page-crumb"><a href="#home"><i data-icon="left"></i>返回今日</a></div><h1 id="detail-title"></h1></div>
+      <div id="detail-content"></div>
+    </section>
+    <section id="settings-view" aria-labelledby="settings-title" hidden>
+      <div class="page-head"><div class="page-crumb"><a href="#home"><i data-icon="left"></i>返回今日</a></div><h1 id="settings-title">个人设置</h1></div>
+      <nav id="settings-index" aria-label="设置分类"></nav>
+      <div id="settings-content"></div>
+      <div id="layout-options" class="settings-panel"></div>
+      <div id="more-preferences" class="settings-panel"><section id="wallpaper-collections" class="settings-card"></section><section id="local-snapshots" class="settings-card"></section><section id="webdav-settings" class="settings-card"></section></div>
+    </section>
+  </main>
+  <dialog id="widget-drawer" aria-label="首页小工具"><button type="button" class="drawer-close" aria-label="关闭小工具">关闭</button><div id="drawer-content"></div></dialog>
+</body>
+</html>

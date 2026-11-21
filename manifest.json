@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Daybreak 晨屿",
+  "version": "1.1.1",
+  "description": "自己的浏览器起始页，集中管理网页收藏、书签、历史、笔记、待办与天气。",
+  "permissions": ["storage", "unlimitedStorage", "activeTab", "bookmarks", "history", "alarms", "search", "favicon"],
+  "optional_permissions": ["topSites", "management", "notifications"],
+  "optional_host_permissions": ["https://*/*", "http://127.0.0.1/*", "http://localhost/*"],
+  "background": {"service_worker":"background.js","type":"module"},
+  "host_permissions": [
+    "https://geocoding-api.open-meteo.com/*",
+    "https://api.open-meteo.com/*",
+    "https://wttr.in/*"
+  ],
+  "icons": {"16":"assets/icon16.png","32":"assets/icon32.png","48":"assets/icon48.png","128":"assets/icon128.png"},
+  "action": {
+    "default_title": "晨屿 · 收藏当前网页",
+    "default_popup": "popup.html",
+    "default_icon": {"16":"assets/icon16.png","32":"assets/icon32.png","48":"assets/icon48.png"}
+  },
+  "chrome_url_overrides": {"newtab":"newtab.html"}
+}

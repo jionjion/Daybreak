@@ -1,0 +1,87 @@
+.wallpaper-panel { min-width: 0; color: var(--ink); font-size: 15px; line-height: 1.5; }
+.wallpaper-panel h2 { margin: 0 0 16px; }
+.wallpaper-toolbar, .wallpaper-controls, .wallpaper-bing {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+.wallpaper-toolbar label, .wallpaper-controls label, .wallpaper-bing label {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+.wallpaper-panel :is(button, select) { font: inherit; font-size: 14px; color: var(--ink); }
+.wallpaper-panel button, .wallpaper-panel select {
+  min-height: 38px;
+  padding: 7px 12px;
+  border: 1px solid var(--setting-field-border,var(--line));
+  border-radius: 8px;
+  background: var(--surface);
+}
+.wallpaper-panel select { max-width: min(220px,100%); }
+.wallpaper-panel button { color: var(--accent); font-weight: 550; cursor: pointer; }
+.wallpaper-panel button:enabled:hover { background: color-mix(in srgb,var(--accent) 6%,var(--surface)); }
+.wallpaper-panel button:disabled { cursor: default; opacity: .65; }
+.wallpaper-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(min(150px,100%),1fr));
+  gap: 12px;
+  margin: 16px 0 20px;
+  color: var(--subtle);
+  font-size: 14px;
+}
+.wallpaper-card { position: relative; min-width: 0; }
+.wallpaper-panel .wallpaper-photo {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  padding: 3px 3px 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  text-align: left;
+  color: var(--ink);
+}
+.wallpaper-panel .wallpaper-photo[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.wallpaper-photo > span:last-child { padding: 0 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.wallpaper-thumbnail { width: 100%; aspect-ratio: 16 / 9; display: block; border-radius: 5px; overflow: hidden; background: var(--ground); }
+.wallpaper-thumbnail img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.wallpaper-thumbnail[data-theme="lake"] { background: #d6dfd7 url("../assets/lake.webp") center / cover; }
+.wallpaper-thumbnail[data-theme="pine"] { background: #3c5140; }
+.wallpaper-thumbnail[data-theme="paper"] { background: #ddd5bf; }
+.wallpaper-panel .wallpaper-remove {
+  position: absolute;
+  top: 6px; right: 6px;
+  padding: 0;
+  width: 30px; min-height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 19px;
+  line-height: 1;
+}
+.wallpaper-controls {
+  margin: 0 0 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--setting-rule,var(--line));
+}
+.wallpaper-bing { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--setting-rule,var(--line)); }
+.wallpaper-bing label { min-height: 40px; cursor: pointer; }
+.wallpaper-bing input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+.wallpaper-credit, .wallpaper-status { color: var(--subtle); font-size: 13px; overflow-wrap: anywhere; }
+.wallpaper-credit { flex-basis: 100%; margin: 0; }
+.wallpaper-status { margin: 12px 0 0; }
+.wallpaper-status:empty, .wallpaper-panel [hidden] { display: none !important; }
+.wallpaper-panel :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media(max-width: 540px) {
+  .wallpaper-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+  .wallpaper-toolbar { gap: 8px; }
+  .wallpaper-toolbar label:has(.wallpaper-albums) { width: 100%; }
+  .wallpaper-toolbar .wallpaper-albums { flex: 1; max-width: none; min-width: 0; }
+  .wallpaper-controls { display: grid; gap: 8px; }
+  .wallpaper-controls label { justify-content: space-between; }
+  .wallpaper-controls select { width: 50%; }
+  .wallpaper-panel .wallpaper-remove { width: 34px; min-height: 34px; }
+}
