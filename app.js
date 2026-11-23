@@ -6,18 +6,11 @@ import { mountWeather } from "./widgets/weather.js";
 import { mountSettings, applyWallpaper } from "./widgets/settings.js";
 import { mountSearch } from "./widgets/search.js";
 import { mountLayout, setupQuickStrip, setupWidgetDrawer } from "./widgets/home.js";
-import { mountTools } from "./widgets/tools.js";
-import { mountAI } from "./widgets/ai.js";
 import { mountDirectory } from "./widgets/directory.js";
-import { mountSnapshots } from "./widgets/snapshots.js";
-import { mountWebDAV } from "./widgets/webdav.js";
 import { initializeWallpaperRotation, mountWallpapers, nextWallpaper } from "./widgets/wallpapers.js";
 
 const byId = id => document.getElementById(id);
 const drawings = {
-  tools: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5c0-.8.6-1.5 1.5-1.5h5C15.4 3.5 16 4.2 16 5v2M3 12c5.5 3 12.5 3 18 0M12 12v3"/>',
-  chat: '<path d="M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-8l-6 3v-3a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM7.5 9h9M7.5 13H14"/>',
-  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/>',
   rotate: '<path d="M4 10a8 8 0 1 1 1.5 7M4 4v6h6"/>',
   left: '<path d="M20 12H5m6-6-6 6 6 6"/>',
   home: '<rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/>',
@@ -27,7 +20,6 @@ const drawings = {
   settings: '<path d="M4 7h6m5 0h5M4 17h3m5 0h8"/><circle cx="12.5" cy="7" r="2.5"/><circle cx="9.5" cy="17" r="2.5"/>',
   search: '<circle cx="10.5" cy="10.5" r="6.6"/><path d="m16 16 4.5 4.5"/>',
   arrow: '<path d="M4 12h15m-6.4-6.4 6.4 6.4-6.4 6.4"/>',
-  chevron: '<path d="m9 5 7 7-7 7"/>',
   image: '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.3" cy="9" r="1.4"/><path d="m7 20 8-9 6 6"/>',
   check: '<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="m7.7 12 2.9 2.9 5.7-6.1"/>',
   note: '<path d="M6 3.5h12a1 1 0 0 1 1 1v11l-5 5H6a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1zM13.5 20v-5.5H19M8.5 8h7M8.5 11h5"/>',
@@ -67,7 +59,7 @@ function applyPreferences(updated) {
   showTime();
 }
 
-const titles = { favorites:"网页收藏", bookmarks:"浏览器书签", history:"历史记录",tools:"浏览器工具",ai:"AI 对话",directory:"添加网站" };
+const titles = { favorites:"网页收藏", bookmarks:"浏览器书签", history:"历史记录",directory:"添加网站" };
 let cleanupDetail;
 let settingsExtrasReady=false;
 function navigate(shouldFocus = true) {
@@ -81,14 +73,12 @@ function navigate(shouldFocus = true) {
   byId("detail-view").hidden = !detail;
   byId("settings-view").hidden = route !== "settings";
   if(route==="settings" && !settingsExtrasReady){
-    mountSnapshots(byId("local-snapshots"));
-    mountWebDAV(byId("webdav-settings"));
     mountWallpapers(byId("wallpaper-collections"));
     settingsExtrasReady=true;
   }
   for (const link of document.querySelectorAll(".nav a, .settings-link")) {
     if (link.hash === "#" + route) link.setAttribute("aria-current", "page");
-    else if ((route === "directory" && link.hash === "#favorites") || (route === "ai" && link.hash === "#tools")) link.setAttribute("aria-current", "location");
+    else if (route === "directory" && link.hash === "#favorites") link.setAttribute("aria-current", "location");
     else link.removeAttribute("aria-current");
   }
   cleanupDetail?.();
@@ -97,8 +87,6 @@ function navigate(shouldFocus = true) {
     byId("detail-title").textContent = titles[name];
     const root = byId("detail-content");
     if (name === "favorites") cleanupDetail=mountFavorites(root);
-    else if (name === "tools") cleanupDetail=mountTools(root);
-    else if (name === "ai") cleanupDetail=mountAI(root);
     else if (name === "directory") cleanupDetail=mountDirectory(root);
     else cleanupDetail=mountLibrary(root,name);
   }
@@ -109,7 +97,7 @@ function navigate(shouldFocus = true) {
 }
 
 const input = byId("query");
-const search = mountSearch({form:byId("search-form"),input,webButton:byId("web-mode"),aiButton:byId("ai-mode"),engineSelect:byId("engine-switch")});
+const search = mountSearch({form:byId("search-form"),input,engineSelect:byId("engine-switch")});
 const closeDrawer = setupWidgetDrawer(byId("widget-drawer"),byId("system-shortcuts"),drawIcon);
 const updateQuickStrip = setupQuickStrip(byId("quick-strip"));
 mountLayout(byId("layout-options"),values=>{
@@ -143,9 +131,9 @@ const wallpaperSection = "#settings-content .settings-themes";
 let chosenSettingsSection;
 const sections = [
   ["个人偏好", "#settings-content [name=name]"], ["搜索", "#settings-content [name=engine]"],
-  ["首页壁纸", wallpaperSection], ["备份与迁移", "#settings-content .settings-backup"],
+  ["天气服务", "#settings-content .settings-weather"], ["首页壁纸", wallpaperSection],
   ["首页小工具", "#settings-content [name=tasks]"], ["首页布局", "#layout-options section"],
-  ["链接打开方式", "#layout-options [name=linksNewTab]"], ["壁纸库", "#wallpaper-collections"], ["还原点", "#local-snapshots"], ["跨设备备份", "#webdav-settings"]
+  ["链接打开方式", "#layout-options [name=linksNewTab]"], ["壁纸库", "#wallpaper-collections"]
 ].map(([name, selector]) => {
   const button = document.createElement("button");
   button.type = "button";
@@ -181,7 +169,9 @@ function scheduleSettingsIndex() {
     chosenSettingsSection = null;
     const visible = sections.filter(entry => entry.section());
     const atEnd = window.scrollY + innerHeight >= document.documentElement.scrollHeight - 2;
-    const threshold = 48;
+    // Keep the highlighted entry in sync with the sticky header, which covers the section tops.
+    const header = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--topbar-height")) || 67;
+    const threshold = header + 24;
     const current = atEnd ? visible.at(-1) : visible.filter(entry => entry.section().getBoundingClientRect().top <= threshold).at(-1) || visible[0];
     if (current) markSettingsSection(current.button);
   });

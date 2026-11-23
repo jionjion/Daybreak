@@ -37,6 +37,8 @@ async function config() {
   const c = Object.fromEntries(configKeys.map(key => [key, data[base + key]]));
   return {...c, album:c.album || builtin, rotation:c.rotation || "off", order:c.order || "next"};
 }
+// Bing is the default until the user explicitly turns it off or applies another background.
+function bingOn(c) { return c.bing !== false; }
 async function catalog() {
   const keys = (await allKeys()).filter(key => key.startsWith(info) || key.startsWith(albumKey));
   const records = Object.entries(await get(keys));
@@ -141,12 +143,17 @@ export async function nextWallpaper(order) {
   catch (e) { return {ok:false, message:e.message || "壁纸切换失败，请重试。"}; }
 }
 
+// Picking a built-in or personal background opts out of the Bing daily default.
+export async function disableBing() {
+  await set({[base+"bing"]: false});
+}
+
 export function initializeWallpaperRotation() {
   async function tick(isNew) {
     try {
       await locked(async () => {
         const c = await config();
-        if (c.bing) {
+        if (bingOn(c)) {
           const last = new Date(c.lastAttempt || 0);
           const newDate = last.toDateString() !== new Date().toDateString();
           const retry = c.bingStatus?.includes("暂时无法连接") && Date.now()-last.getTime()>15*60000;
@@ -206,16 +213,16 @@ export function mountWallpapers(root) {
     const serial = ++generation;
     try {
       const [c, {photos,albums}, prefs] = await Promise.all([config(), catalog(), get([prefTheme])]);
-      const cache = c.bing ? (await get([base+"bingCache"]))[base+"bingCache"] : null;
+      const cache = bingOn(c) ? (await get([base+"bingCache"]))[base+"bingCache"] : null;
       if (!active || serial !== generation) return;
       selector.replaceChildren(...albums.map(album => new Option(album.title, album.id)));
       selector.value = albums.some(a=>a.id===c.album) ? c.album : personal;
       button("remove-album").hidden = [builtin,personal].includes(selector.value);
       child(".wallpaper-rotation").value = c.rotation;
       child(".wallpaper-order").value = c.order;
-      bing.checked = !!c.bing; button("bing").hidden = !c.bing;
+      bing.checked = bingOn(c); button("bing").hidden = !bingOn(c);
       const credit = child(".wallpaper-credit");
-      credit.textContent = c.bing ? [c.bingStatus,cache?.title,cache?.credit].filter(Boolean).join(" · ") : "";
+      credit.textContent = bingOn(c) ? [c.bingStatus,cache?.title,cache?.credit].filter(Boolean).join(" · ") : "";
       credit.hidden = !credit.textContent;
       const gallery = photosOf(selector.value, photos);
       grid.replaceChildren();
@@ -223,7 +230,7 @@ export function mountWallpapers(root) {
         const card = document.createElement("div"); card.className = "wallpaper-card";
         const apply = document.createElement("button"); apply.type = "button"; apply.className = "wallpaper-photo";
         const theme = prefs[prefTheme] || "lake";
-        apply.setAttribute("aria-pressed", String(!c.bing && (photo.theme ? theme === photo.theme : theme === "custom" && c.current === photo.id)));
+        apply.setAttribute("aria-pressed", String(!bingOn(c) && (photo.theme ? theme === photo.theme : theme === "custom" && c.current === photo.id)));
         const plate = document.createElement("span"); plate.className = "wallpaper-thumbnail";
         if (photo.theme) plate.dataset.theme = photo.theme;
         else {

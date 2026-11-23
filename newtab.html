@@ -6,6 +6,7 @@
   <meta name="color-scheme" content="light">
   <title>Daybreak 晨屿</title>
   <link rel="icon" href="assets/icon32.png">
+  <link rel="stylesheet" href="fonts.css">
   <link rel="stylesheet" href="widgets/favorites.css">
   <link rel="stylesheet" href="widgets/library.css">
   <link rel="stylesheet" href="widgets/weather.css">
@@ -13,9 +14,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="widgets/home.css">
   <link rel="stylesheet" href="widgets/productivity.css">
-  <link rel="stylesheet" href="widgets/ai.css">
   <link rel="stylesheet" href="widgets/wallpapers.css">
-  <link rel="stylesheet" href="widgets/webdav.css">
   <script type="module" src="app.js"></script>
 </head>
 <body>
@@ -29,7 +28,6 @@
         <a href="#favorites"><i data-icon="star"></i>收藏</a>
         <a href="#bookmarks"><i data-icon="bookmark"></i>书签</a>
         <a href="#history"><i data-icon="history"></i>历史记录</a>
-        <a href="#tools"><i data-icon="tools"></i>工具</a>
       </nav>
       <a href="#settings" class="settings-link" aria-label="个人设置"><i data-icon="settings"></i><span>个人设置</span></a>
     </div>
@@ -43,13 +41,9 @@
           <h1 class="time" aria-label="当前时间"><time id="time"></time><span id="period"></span></h1>
           <div class="search-block">
             <div class="search-toolbar">
-              <div class="search-modes" role="group" aria-label="搜索模式">
-                <button type="button" id="web-mode" aria-pressed="true">网页搜索</button>
-                <button type="button" id="ai-mode" aria-pressed="false">AI 搜索</button>
-              </div>
               <select id="engine-switch" aria-label="搜索引擎"></select>
             </div>
-            <form id="search-form" class="search-form" role="search">
+            <form id="search-form" class="search-form" role="search" novalidate>
               <i id="search-icon" data-icon="search"></i>
               <input id="query" type="text" autocomplete="off" placeholder="搜索或输入网址" aria-label="搜索或输入网址" required>
               <kbd aria-hidden="true">/</kbd>
@@ -57,7 +51,6 @@
             </form>
             <div class="search-foot">
               <div id="search-categories"></div>
-              <a class="chat-jump" href="#ai">打开 AI 对话<i data-icon="chevron"></i></a>
             </div>
           </div>
         </div>
@@ -84,7 +77,7 @@
       <nav id="settings-index" aria-label="设置分类"></nav>
       <div id="settings-content"></div>
       <div id="layout-options" class="settings-panel"></div>
-      <div id="more-preferences" class="settings-panel"><section id="wallpaper-collections" class="settings-card"></section><section id="local-snapshots" class="settings-card"></section><section id="webdav-settings" class="settings-card"></section></div>
+      <div id="more-preferences" class="settings-panel"><section id="wallpaper-collections" class="settings-card"></section></div>
     </section>
   </main>
   <dialog id="widget-drawer" aria-label="首页小工具"><button type="button" class="drawer-close" aria-label="关闭小工具">关闭</button><div id="drawer-content"></div></dialog>

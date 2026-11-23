@@ -11,15 +11,12 @@
 .catalog-item a:hover { text-decoration:underline; text-underline-offset:3px; }
 .catalog-item small { color:var(--subtle); font-size:12px; margin-top:3px; }
 .catalog-mark { width:36px; height:36px; display:grid; place-items:center; color:white; background:#436953; border-radius:9px; font:600 16px Georgia,serif; flex:none; }
-.tools-panel { display:grid; gap:18px; max-width:960px; }
 .tool-bar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
 .tool-bar .settings-field { width:auto; min-width:0; max-width:100%; }
 .tool-button,.drawer-close { display:inline-flex; justify-content:center; align-items:center; font:inherit; font-size:13px; min-height:36px; padding:5px 12px; border:1px solid #cad5c8; border-radius:7px; background:#f5f7ef; color:#314e3a; cursor:pointer; text-decoration:none; }
 .tool-button:hover,.drawer-close:hover { background:#e7eee2; }
-.tool-status,.extension-label small { color:var(--subtle); font-size:13px; line-height:1.55; }
+.tool-status { color:var(--subtle); font-size:13px; line-height:1.55; }
 .tool-status:empty { display:none; }
-.extension-row { display:flex; flex-wrap:wrap; gap:8px; padding:12px 0; border-top:1px solid var(--line); align-items:center; }
-.extension-label { flex:1 1 150px; min-width:0; overflow-wrap:anywhere; display:grid; gap:3px; }
 @media (max-width:600px){
   .wall-actions { top:12px; bottom:auto; right:12px; gap:4px; }
   .wall-message { top:45px; }

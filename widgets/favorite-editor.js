@@ -83,6 +83,7 @@ function dialogForm(container, heading, saveText = "保存") {
   const dialog = make("dialog","dialog");
   dialog.setAttribute("aria-label",heading);
   const form = make("form","form");
+  form.noValidate = true;
   form.append(make("h3","dialog-title",heading));
   const status = make("p","message");
   status.setAttribute("role","status");

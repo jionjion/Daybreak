@@ -194,7 +194,7 @@ export function mountTasks(root) {
   function editTask(task) {
     const dialog = element("dialog", "tasks-dialog");
     dialog.setAttribute("aria-label", "编辑待办");
-    dialog.innerHTML = '<form><h3>编辑待办</h3><label>待办内容<input class="tasks-field" name="text" required></label><label>本地提醒<input class="tasks-field" name="remind" type="datetime-local"></label><p role="status"></p><div><button type="button">取消</button><button type="submit">保存</button></div></form>';
+    dialog.innerHTML = '<form novalidate><h3>编辑待办</h3><label>待办内容<input class="tasks-field" name="text" required></label><label>本地提醒<input class="tasks-field" name="remind" type="datetime-local"></label><p role="status"></p><div><button type="button">取消</button><button type="submit">保存</button></div></form>';
     root.append(dialog);
     const form = dialog.querySelector("form"), title = form.elements.text, date = form.elements.remind;
     title.value = task.text; date.disabled = !!task.done;

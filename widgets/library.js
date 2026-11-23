@@ -96,6 +96,7 @@ function modal(panel, title, submitLabel, destructive = false) {
   const dialog = element("dialog", "library-dialog");
   dialog.setAttribute("aria-label", title);
   const form = element("form", "library-form");
+  form.noValidate = true;
   const content = element("div", "library-fields");
   const error = element("p", "library-error");
   error.setAttribute("role", "alert");

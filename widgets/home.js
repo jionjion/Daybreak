@@ -184,8 +184,8 @@ export function setupWidgetDrawer(dialog, container, drawIcon) {
   });
   for (const [id,title,glyph] of [
     ["weather","天气","weather"], ["tasks","待办事项","check"], ["notes","笔记","note"],
-    ["bookmarks","书签","bookmark"], ["history","历史记录","history"], ["ai","AI 对话","chat"],
-    ["tools","工具","tools"], ["settings","设置","settings"]
+    ["bookmarks","书签","bookmark"], ["history","历史记录","history"],
+    ["settings","设置","settings"]
   ]) {
     const card=document.getElementById(id+"-card");
     const button=el(card?"button":"a",null,"system-tile");
@@ -207,19 +207,5 @@ export function setupWidgetDrawer(dialog, container, drawIcon) {
     const n=Number(e.detail)||0;badge.hidden=n<=0;badge.textContent=n>99?"99+":String(n);
     taskTile.setAttribute("aria-label",n>0?"待办事项，"+n+" 项未完成":"待办事项");
   });
-  const mail=el("a",null,"system-tile");mail.hidden=true;mail.href="https://mail.google.com/mail/u/0/";mail.target="_blank";mail.rel="noopener noreferrer";
-  const emailBadge=el("span","","shortcut-count");emailBadge.hidden=true;
-  const mailIcon=el("span",null,"system-glyph");
-  drawIcon(mailIcon,"mail");
-  mail.append(mailIcon,el("span","Gmail","system-label"),emailBadge);container.append(mail);
-  let mailRequest=0;
-  async function readMail(){
-    const request=++mailRequest,values=await storage.local.get(["daybreak.mail.enabled","daybreak.runtime.mail"]);
-    if(request!==mailRequest)return;
-    mail.hidden=!values["daybreak.mail.enabled"];
-    const n=values["daybreak.runtime.mail"]?.count||0;emailBadge.hidden=!n;emailBadge.textContent=n>99?"99+":String(n);
-    mail.setAttribute("aria-label",n?"Gmail，"+n+" 封未读邮件":"Gmail 收件箱");
-  }
-  if(storage){readMail().catch(()=>{});storage.onChanged.addListener((changes,area)=>{if(area==="local"&&(changes["daybreak.mail.enabled"]||changes["daybreak.runtime.mail"]))readMail().catch(()=>{});});}
   return () => { if(dialog.open)dialog.close(); restore(); };
 }

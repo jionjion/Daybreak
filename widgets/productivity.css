@@ -101,7 +101,10 @@
   min-height: 38px;
   padding: 0 3px 0 10px;
 }
-.widget-card .tasks-form:focus-within { border-color: var(--widget-green); }
+.widget-card .tasks-form:focus-within {
+  border-color: var(--widget-green);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--widget-green) 16%, transparent);
+}
 .widget-card .tasks-input {
   flex: 1;
   min-width: 0;

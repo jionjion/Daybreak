@@ -1,5 +1,5 @@
 import { customList, enginesFor, setEngineOptions, savePrefs, validTemplate } from "./search.js";
-import { mountBackup } from "./backup.js";
+import { disableBing } from "./wallpapers.js";
 
 const prefix = "daybreak.pref.";
 const defaults = {
@@ -89,13 +89,21 @@ export async function mountSettings(root, onChange) {
         <label class="settings-row"><span>显示收藏与浏览历史建议</span><input class="settings-switch" name="searchSuggestions" type="checkbox" role="switch"></label>
         <div class="settings-custom-list"></div>
         <button type="button" class="settings-action settings-new-engine">添加自定义搜索引擎</button>
-        <form class="settings-engine-form" hidden>
+        <form class="settings-engine-form" hidden novalidate>
           <label>引擎名称<input class="settings-field" name="engineName" type="text" required maxlength="80" autocomplete="off"></label>
           <label>搜索网址<input class="settings-field" name="engineTemplate" type="text" required placeholder="https://example.com/search?q=%s" autocomplete="off"></label>
           <small>用 %s 代表搜索词。</small>
           <p class="settings-engine-error" role="alert" hidden></p>
           <div class="settings-actions"><button class="settings-action" type="submit">保存引擎</button><button class="settings-action settings-engine-cancel" type="button">取消</button></div>
         </form>
+      </section>
+      <section class="settings-card settings-weather">
+        <h2>天气服务</h2>
+        <p class="settings-help">天气和城市搜索使用和风天气。请在 <a href="https://console.qweather.com/" target="_blank" rel="noopener noreferrer">控制台</a> 创建项目，取得 API Host 和 API Key。</p>
+        <label class="settings-row"><span>API Host</span><input class="settings-field" name="weatherApiHost" type="url" autocomplete="off" spellcheck="false" placeholder="https://xxxxxx.re.qweatherapi.com"></label>
+        <label class="settings-row"><span>API Key</span><input class="settings-field" name="weatherApiKey" type="password" autocomplete="off" spellcheck="false"></label>
+        <div class="settings-actions"><button class="settings-action weather-service-save" type="button">保存天气服务</button></div>
+        <p class="settings-weather-status" role="status"></p>
       </section>
       <section class="settings-card">
         <h2>首页壁纸</h2>
@@ -107,7 +115,6 @@ export async function mountSettings(root, onChange) {
         <label class="settings-row"><span>遮罩浓度</span><span class="settings-slider"><input name="wallpaperMask" type="range" min="0" max="85"><output aria-hidden="true"></output></span></label>
         <label class="settings-row"><span>壁纸模糊</span><span class="settings-slider"><input name="wallpaperBlur" type="range" min="0" max="24"><output aria-hidden="true"></output></span></label>
       </section>
-      <section class="settings-card settings-backup"></section>
       <section class="settings-card">
         <h2>首页小工具</h2>
         <label class="settings-row"><span>待办事项</span><input class="settings-switch" name="tasks" type="checkbox" role="switch"></label>
@@ -130,6 +137,40 @@ export async function mountSettings(root, onChange) {
   let editingEngine = null;
   const switches = ["clock24", "tasks", "notes", "weather", "searchNewTab", "keepQuery", "hideCategories", "searchSuggestions"];
   const engineForm = find(".settings-engine-form");
+  const weatherHost = find('[name="weatherApiHost"]');
+  const weatherKey = find('[name="weatherApiKey"]');
+  const weatherServiceStatus = find(".settings-weather-status");
+  const weatherConfigKeys = ["daybreak.weather.apiHost", "daybreak.weather.apiKey"];
+  async function loadWeatherService() {
+    try {
+      let values;
+      if (storage) values = await storage.get(weatherConfigKeys);
+      else values = Object.fromEntries(weatherConfigKeys.map(key => {
+        try { return [key, JSON.parse(localStorage.getItem(key))]; } catch { return [key, null]; }
+      }));
+      weatherHost.value = typeof values[weatherConfigKeys[0]] === "string" ? values[weatherConfigKeys[0]] : "";
+      weatherKey.value = typeof values[weatherConfigKeys[1]] === "string" ? values[weatherConfigKeys[1]] : "";
+    } catch { /* Leave the fields empty when storage is unavailable. */ }
+  }
+  find(".weather-service-save").addEventListener("click", async () => {
+    const host = weatherHost.value.trim(), key = weatherKey.value.trim();
+    try {
+      if (!host || !key) throw new Error("请填写 API Host 和 API Key。");
+      const url = new URL(/^https?:\/\//i.test(host) ? host : "https://" + host);
+      if (url.protocol !== "https:") throw new Error("API Host 需要使用 HTTPS 地址。");
+      const values = { [weatherConfigKeys[0]]: url.origin, [weatherConfigKeys[1]]: key };
+      if (storage) await storage.set(values);
+      else {
+        for (const [name, value] of Object.entries(values)) localStorage.setItem(name, JSON.stringify(value));
+        window.dispatchEvent(new CustomEvent("daybreak:weather-config"));
+      }
+      weatherHost.value = url.origin;
+      weatherServiceStatus.textContent = "天气服务已保存。";
+    } catch (error) {
+      weatherServiceStatus.textContent = error.message || "天气服务未能保存。";
+    }
+  });
+  loadWeatherService();
   const closeEngineForm = () => {
     editingEngine = null;
     engineForm.hidden = true;
@@ -217,7 +258,7 @@ export async function mountSettings(root, onChange) {
     button.addEventListener("click", () => {
       uploadId++;
       if (key === "custom" && !current?.customImage) upload.click();
-      else save({ theme: key });
+      else { disableBing(); save({ theme: key }); }
     });
     tray.append(button);
   }
@@ -279,7 +320,7 @@ export async function mountSettings(root, onChange) {
   for (const key of switches) {
     field(key).addEventListener("change", () => save({ [key]: field(key).checked }));
   }
-  field("wallpaperColor").addEventListener("change", () => save({ wallpaperColor: field("wallpaperColor").value, theme: "color" }));
+  field("wallpaperColor").addEventListener("change", () => { disableBing(); save({ wallpaperColor: field("wallpaperColor").value, theme: "color" }); });
   field("wallpaperFit").addEventListener("change", () => save({ wallpaperFit: field("wallpaperFit").value }));
   for (const key of ["wallpaperMask","wallpaperBlur"]) {
     field(key).addEventListener("input", () => {
@@ -298,7 +339,7 @@ export async function mountSettings(root, onChange) {
     status.textContent = "正在处理图片…";
     try {
       const customImage = await encodeWallpaper(file);
-      if (active && request === uploadId) save({ customImage, theme: "custom" });
+      if (active && request === uploadId) { disableBing(); save({ customImage, theme: "custom" }); }
     } catch {
       if (active && request === uploadId) status.textContent = "无法读取图片，请换一张图片重试。";
     }
@@ -310,7 +351,6 @@ export async function mountSettings(root, onChange) {
     window.addEventListener("storage", onPreviewStorage);
     window.addEventListener("daybreak:preferences", refresh);
   }
-  mountBackup(find(".settings-backup"), refresh);
   await refresh();
   return () => {
     active = false;

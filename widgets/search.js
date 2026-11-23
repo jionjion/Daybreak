@@ -187,12 +187,12 @@ function suggestionsFor(form, input, enabled, options) {
   return { close, composing:()=>composing, destroy(){close();box.remove();} };
 }
 
-export function mountSearch({ form, input, webButton, aiButton, engineSelect }) {
+export function mountSearch({ form, input, engineSelect }) {
   const listeners = new AbortController();
   const options = { signal: listeners.signal };
   let prefs = { engine: "bing", customEngines: [], searchNewTab: false, keepQuery: false };
-  let ai = false, category = "web";
-  const suggestions = suggestionsFor(form, input, () => prefs.searchSuggestions && !ai && category === "web", options);
+  let category = "web";
+  const suggestions = suggestionsFor(form, input, () => prefs.searchSuggestions && category === "web", options);
   const container = form.closest(".search-block") || form.parentElement;
   const existing = container.querySelector("#search-categories");
   const bar = existing || document.createElement("div");
@@ -216,24 +216,18 @@ export function mountSearch({ form, input, webButton, aiButton, engineSelect }) 
   }
   function showMode(focus) {
     suggestions.close();
-    webButton?.setAttribute("aria-pressed", String(!ai));
-    aiButton?.setAttribute("aria-pressed", String(ai));
-    if (engineSelect) engineSelect.hidden = ai;
     const engine = currentEngine();
     const types = specialized[engine.id] || engine.types || {};
     if (!types[category] || prefs.hideCategories) category = "web";
-    bar.hidden = ai || prefs.hideCategories || !Object.keys(types).length;
+    bar.hidden = prefs.hideCategories || !Object.keys(types).length;
     for (const [key, button] of categoryButtons) {
       button.hidden = key !== "web" && !types[key];
       button.setAttribute("aria-pressed", String(category === key));
     }
-    input.placeholder = ai ? "向 Perplexity 提问" : category === "web" ? "搜索或输入网址" : "搜索" + categories[category];
+    input.placeholder = category === "web" ? "搜索或输入网址" : "搜索" + categories[category];
     input.setAttribute("aria-label", input.placeholder);
-    form.dataset.mode = ai ? "ai" : "web";
     if (focus) input.focus();
   }
-  webButton?.addEventListener("click", () => { ai = false; showMode(true); }, options);
-  aiButton?.addEventListener("click", () => { ai = true; showMode(true); }, options);
   engineSelect?.addEventListener("change", async () => {
     const old = prefs.engine;
     const engine = engineSelect.value;
@@ -250,11 +244,11 @@ export function mountSearch({ form, input, webButton, aiButton, engineSelect }) 
     const query = input.value.trim();
     if (!query) { input.focus(); return; }
     const engine = currentEngine();
-    const direct = !ai && category === "web" ? addressFor(query) : null;
-    if (!ai && !direct && engine.id === "browser") {
+    const direct = category === "web" ? addressFor(query) : null;
+    if (!direct && engine.id === "browser") {
       chrome.search.query({ text: query, disposition: prefs.searchNewTab ? "NEW_TAB" : "CURRENT_TAB" });
     } else {
-      const template = ai ? "https://www.perplexity.ai/search?q=%s" : (specialized[engine.id] || engine.types)?.[category] || engine.template;
+      const template = (specialized[engine.id] || engine.types)?.[category] || engine.template;
       const url = direct || template.replaceAll("%s", () => encodeURIComponent(query));
       if (prefs.searchNewTab) window.open(url, "_blank", "noopener,noreferrer");
       else location.assign(url);
