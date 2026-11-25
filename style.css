@@ -46,7 +46,7 @@ i[data-icon] svg { display: block; width: 1.15em; height: 1.15em; }
 .search-form input { min-width: 0; flex: 1; height: 44px; padding: 0; border: 0; color: var(--ink); background: transparent; outline: none; font-size: 16px; }
 .search-form:focus-within { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .search-form input::placeholder { color: var(--subtle); }
-.search-form button { display: grid; place-items: center; width: 42px; height: 38px; flex: none; border-radius: 7px; border: 0; background: var(--accent); color: var(--accent-contrast); font-size: 18px; }
+.search-form button { display: grid; place-items: center; width: 42px; height: 38px; flex: none; border-radius: var(--btn-radius); border: 0; background: var(--accent); color: var(--accent-contrast); font-size: 18px; font-weight: 600; }
 .search-form button:hover { background: var(--accent-strong); }
 .search-foot { gap: 4px 10px; justify-content: space-between; flex-wrap: wrap; margin-top: 2px; }
 .search-categories { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }

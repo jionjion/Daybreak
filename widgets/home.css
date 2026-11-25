@@ -1,8 +1,9 @@
-.wall-actions { position:fixed; right:18px; bottom:18px; z-index:30; display:none; gap:6px; }
+.wall-actions { position:fixed; right:18px; bottom:18px; z-index:30; display:none; gap:6px; opacity:.72; transition:opacity .18s ease; }
+.wall-actions:hover, .wall-actions:focus-within { opacity:1; }
 body[data-route="home"] .wall-actions { display:flex; }
-.wall-actions .hero-edit, #wall-next { width:34px; height:34px; padding:0; display:grid; place-items:center; border-radius:8px; border:1px solid #ffffff60; color:white; background:#182d24a8; }
-.wall-actions :is(a,button):hover { background:#162d24e8; }
-.wall-message { position:absolute; right:18px; top:10px; max-width:50%; padding:5px 9px; background:#172d24ec; border-radius:6px; color:white; font-size:12px; }
+.wall-actions .hero-edit, #wall-next { width:34px; height:34px; padding:0; display:grid; place-items:center; border-radius:var(--btn-radius); border:1px solid var(--glass-deep-border); color:white; background:var(--glass-deep); -webkit-backdrop-filter:blur(18px) saturate(1.2); backdrop-filter:blur(18px) saturate(1.2); }
+.wall-actions :is(a,button):hover { background:hsl(var(--wall-hue,160) 35% 12% / .72); }
+.wall-message { position:absolute; right:18px; top:10px; max-width:50%; padding:5px 9px; background:hsl(var(--wall-hue,160) 35% 12% / .92); border-radius:6px; color:white; font-size:12px; }
 .wall-message:empty { display:none; }
 #quick-strip { margin:0 0 14px; display:grid; gap:7px; }
 .quick-strip-row { min-width:0; display:flex; align-items:center; gap:14px; white-space:nowrap; overflow-x:auto; scrollbar-width:thin; padding:4px 0; }
@@ -11,11 +12,24 @@ body[data-route="home"] .wall-actions { display:flex; }
 .quick-strip-row strong { flex:none; font-size:12px; border-right:1px solid currentColor; padding-right:12px; }
 #system-shortcuts,.wall-layer { display:none; }
 body[data-route="home"] .wall-layer { display:block; }
+/* Glass follows the wallpaper hue (sampled in settings.js) so panels read as
+   part of the art; light frost pairs with dark ink for readable names. */
+body[data-route="home"]:not([data-wall-theme="paper"]) {
+  /* Vibrancy glass: half-transparent, heavy blur + saturation so the wallpaper
+     glows through; still a clear lightness step below the light search box. */
+  --glass-surface: hsl(var(--wall-hue,160) 32% 12% / .32);
+  --glass-deep: hsl(var(--wall-hue,160) 35% 12% / .46);
+}
 body[data-route="home"] .hero { background:transparent; overflow:visible; }
 body[data-route="home"] .hero::before,body[data-route="home"] .hero::after { content:none; }
 body[data-route="home"] .hero-inner { padding-inline:0; }
-body[data-route="home"] #quick-strip { color:#fffef4; text-shadow:0 1px 6px #0b201899; }
+body[data-route="home"] #quick-strip { color:#fffef4; text-shadow:0 1px 6px hsl(var(--wall-hue,260) 45% 10% / .6); }
+.home-weather { display:inline-flex; width:max-content; max-width:100%; margin:3px 0 0; color:#fffef4; font-size:13px; letter-spacing:.02em; text-decoration:none; text-shadow:0 1px 6px hsl(var(--wall-hue,260) 45% 10% / .6); }
+.home-weather:hover { text-decoration:underline; text-underline-offset:3px; }
+body[data-wall-theme="paper"] .home-weather { color:#3e4332; text-shadow:0 1px 3px #fffef4aa; }
+body[data-route="home"]:not([data-wall-theme="paper"]) .hero :is(.hero-date,.time) { text-shadow:0 1px 10px hsl(var(--wall-hue,260) 45% 10% / .5); }
 body[data-route="home"][data-wall-theme="paper"] #quick-strip { color:#3e4332; text-shadow:0 1px 3px #fffef4aa; }
+body[data-wall-theme="paper"] .hero { color:#3e4332; }
 body[data-wall-theme="paper"] .wall-layer::after { background:linear-gradient(180deg,#fffef414,#fffef42e); }
 body[data-route="home"] .bookmarks-band .bookmarks-compact {
   --bm-ink: #fffef4;
@@ -39,10 +53,22 @@ body[data-route="home"][data-wall-theme="paper"] .bookmarks-band .bookmarks-comp
 body[data-route="home"][data-wall-theme="paper"] .bookmarks-band :is(.bookmarks-name, .bookmarks-sheet, .bookmarks-empty) {
   text-shadow: none;
 }
+/* Dark frost pairs with light ink (the search box stays the light surface). */
+body[data-route="home"]:not([data-wall-theme="paper"]) .bookmarks-band .bookmarks-compact {
+  --bm-ink: hsl(var(--wall-hue,160) 30% 96%);
+  --bm-accent: hsl(var(--wall-hue,160) 60% 80%);
+  --bm-accent-text: hsl(var(--wall-hue,160) 60% 86%);
+  --bm-muted: hsl(var(--wall-hue,160) 25% 96% / .72);
+  --bm-hover: rgb(255 255 255 / .12);
+  --bm-line: rgb(255 255 255 / .24);
+}
+body[data-route="home"]:not([data-wall-theme="paper"]) .bookmarks-band :is(.bookmarks-name, .bookmarks-sheet, .bookmarks-empty) {
+  text-shadow: 0 1px 6px hsl(var(--wall-hue,260) 45% 8% / .65);
+}
 body[data-route="home"]:not([data-home-layout="classic"]):not([data-home-layout="minimal"]) .bookmarks-band {
-  padding:16px clamp(18px,2vw,24px);
+  padding:18px clamp(20px,2.2vw,26px);
   border:1px solid var(--glass-border);
-  border-radius:14px;
+  border-radius:16px;
   background:var(--glass-surface);
   -webkit-backdrop-filter:var(--glass-blur);
   backdrop-filter:var(--glass-blur);
@@ -61,13 +87,16 @@ body[data-show-search="false"] .hero .search-block { display:none; }
 .wall-layer[data-theme="color"]::before { background:var(--wallpaper-color); }
 .wall-layer[data-theme="custom"]::before { background-image:var(--custom-wallpaper); }
 .wall-layer::after { background:linear-gradient(180deg,#101b1b4f,#0d1f1a77); box-shadow:inset 0 0 0 100vmax rgb(0 0 0 / var(--wallpaper-mask,0)); }
+/* Photo / solid wallpapers keep their own hue: neutral plum vignette seats the
+   UI and lifts corner text instead of casting the lake's green over everything. */
+.wall-layer:is([data-theme="custom"],[data-theme="color"])::after { background:radial-gradient(120% 95% at 50% 42%, transparent 55%, hsl(var(--wall-hue,260) 40% 10% / .32) 100%), linear-gradient(180deg, hsl(var(--wall-hue,260) 40% 10% / .3), transparent 32%); box-shadow:inset 0 0 0 100vmax hsl(var(--wall-hue,260) 40% 8% / calc(var(--wallpaper-mask,0) * .6)); }
 body:is([data-home-layout="classic"],[data-home-layout="minimal"])[data-route="home"] {
   & .main { position:relative; }
   & .hero { background:transparent; overflow:visible; color:#fffef4; }
   & .hero::before,& .hero::after { content:none; }
   & .hero-inner { align-items:center; justify-content:center; min-height:230px; padding:22px; }
   & .hero-date { letter-spacing:.05em; padding-right:0; }
-  & .search-foot { color:#fffef4; text-shadow:0 1px 4px #0b2018; }
+  & .search-foot { color:#fffef4; text-shadow:0 1px 4px hsl(var(--wall-hue,260) 45% 10% / .8); }
   & .time { margin-bottom:16px; }
   & .time time { font-size:78px; }
   & #quick-strip { color:white; }
@@ -80,7 +109,7 @@ body[data-home-layout="minimal"][data-route="home"] {
 }
 body[data-home-layout="classic"][data-route="home"] {
   & #system-shortcuts { display:flex; justify-content:center; flex-wrap:wrap; gap:16px 20px; margin:25px auto; max-width:950px; }
-  & .bookmarks-band { max-width:950px; margin-inline:auto; border-radius:17px; background:var(--glass-surface); -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur); box-shadow:var(--glass-shadow); padding:16px 22px; }
+  & .bookmarks-band { max-width:950px; margin-inline:auto; border-radius:16px; background:var(--glass-surface); -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur); box-shadow:var(--glass-shadow); padding:16px 22px; }
 }
 .system-tile { position:relative; display:grid; gap:7px; justify-items:center; align-content:start; width:max(68px,var(--daybreak-icon-size,54px)); color:white; background:transparent; border:0; padding:0; text-decoration:none; cursor:pointer; }
 .system-glyph { display:grid; place-items:center; width:var(--daybreak-icon-size,54px); height:var(--daybreak-icon-size,54px); border-radius:var(--daybreak-icon-radius,15px); opacity:var(--daybreak-icon-opacity,1); background:var(--accent-soft); color:var(--accent-text); }
@@ -88,7 +117,9 @@ body[data-home-layout="classic"][data-route="home"] {
 .system-tile[data-module="weather"] .system-glyph { background:#e1eceb; color:#416464; }
 .system-tile:hover .system-glyph { outline:2px solid white; outline-offset:3px; }
 .system-label { display:var(--daybreak-icon-label-display,block); font-size:13px; font-weight:550; text-shadow:0 1px 5px #000; }
-.search-form { border-radius:var(--search-radius,10px);background:color-mix(in srgb,var(--surface) calc(var(--search-alpha,1) * 100%),transparent);box-shadow:var(--search-shadow); }
+.search-form { border-radius:var(--search-radius,10px);background:color-mix(in srgb,var(--surface) calc(var(--search-alpha,1) * 100%),transparent);box-shadow:var(--search-shadow);-webkit-backdrop-filter:blur(22px) saturate(1.25);backdrop-filter:blur(22px) saturate(1.25); }
+/* On wallpaper the search stays frosted (capped alpha) and picks up the tint. */
+body[data-route="home"]:not([data-wall-theme="paper"]) .search-form { background:hsl(var(--wall-hue,160) var(--wall-sat,22%) 98% / min(var(--search-alpha,1),.82)); }
 :is(.system-glyph,.bookmarks-compact .bookmarks-monogram) { box-shadow:var(--icon-shadow); }
 .system-label,.bookmarks-compact .bookmarks-name {font-size:var(--label-size,13px);font-family:var(--label-font,inherit);color:var(--label-color,inherit);}
 .system-label {text-shadow:var(--label-shadow);}

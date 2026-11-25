@@ -14,15 +14,15 @@
 }
 .wallpaper-panel :is(button, select) { font: inherit; font-size: 14px; color: var(--ink); }
 .wallpaper-panel button, .wallpaper-panel select {
-  min-height: 38px;
+  min-height: var(--btn-height);
   padding: 7px 12px;
   border: 1px solid var(--setting-field-border,var(--line));
-  border-radius: 8px;
+  border-radius: var(--btn-radius);
   background: var(--surface);
 }
 .wallpaper-panel select { max-width: min(220px,100%); }
-.wallpaper-panel button { color: var(--accent-text); font-weight: 550; cursor: pointer; }
-.wallpaper-panel button:enabled:hover { background: color-mix(in srgb,var(--accent) 6%,var(--surface)); }
+.wallpaper-panel button { border: 0; background: var(--accent-soft); color: var(--accent-text); font-weight: 600; cursor: pointer; }
+.wallpaper-panel button:enabled:hover { background: color-mix(in srgb,var(--accent) 18%,var(--surface)); }
 .wallpaper-panel button:disabled { cursor: default; opacity: .65; }
 .wallpaper-grid {
   display: grid;

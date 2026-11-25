@@ -101,7 +101,7 @@
   min-height: 40px;
   padding: 7px 12px;
   border: 1px solid var(--setting-field-border, var(--line));
-  border-radius: 8px;
+  border-radius: var(--btn-radius);
   background: var(--surface);
   color: var(--ink);
   font: inherit;
@@ -210,17 +210,18 @@
   box-shadow: inset 0 0 0 3px var(--surface), 0 0 0 2px var(--accent-text);
 }
 .settings-action, .settings-replace {
-  min-height: 38px;
-  padding: 7px 12px;
-  border: 1px solid var(--setting-field-border, var(--line));
-  border-radius: 8px;
-  background: var(--surface);
+  min-height: var(--btn-height);
+  padding: 7px 14px;
+  border: 0;
+  border-radius: var(--btn-radius);
+  background: var(--accent-soft);
   color: var(--accent-text);
   font: inherit;
   font-size: 14px;
-  font-weight: 550;
+  font-weight: 600;
   cursor: pointer;
 }
+.settings-action-primary { background: var(--accent); color: var(--accent-contrast); }
 .settings-action { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
 .weather-settings-host:not(:empty) { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
 .settings-weather .weather-settings-host {
@@ -234,8 +235,9 @@
   --widget-accent-line: var(--accent-line);
 }
 .settings-action:hover, .settings-replace:hover {
-  background: var(--accent-softer);
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
 }
+.settings-action-primary:hover { background: var(--accent-strong); }
 .settings-action:disabled { opacity: .62; cursor: default; }
 .settings-replace { margin-bottom: 8px; }
 .settings-custom-list { margin: 8px 0; }

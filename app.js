@@ -1,7 +1,7 @@
 import { mountLibrary } from "./widgets/library.js";
 import { mountBookmarks } from "./widgets/bookmarks.js";
-import { mountWeather } from "./widgets/weather.js";
-import { mountSettings, applyWallpaper } from "./widgets/settings.js";
+import { mountWeather, mountHomeWeather } from "./widgets/weather.js";
+import { mountSettings, applyWallpaper, applyWallpaperTint, rememberWallpaper } from "./widgets/settings.js";
 import { applyTheme } from "./widgets/theme.js";
 import { mountSearch } from "./widgets/search.js";
 import { mountLayout, setupQuickStrip, setupSystemShortcuts } from "./widgets/home.js";
@@ -49,11 +49,14 @@ function showTime() {
   byId("hero-date").textContent = (preferences.name ? preferences.name + " · " : "") + date + " · " + lunarLabel(now);
 }
 let weatherCleanup;
+let homeWeather;
 function applyPreferences(updated) {
   preferences = updated;
   applyTheme(updated.accent);
   document.body.dataset.wallTheme = updated.theme;
+  applyWallpaperTint(updated);
   for (const target of [byId("hero"),byId("wall-layer")]) applyWallpaper(target,updated);
+  rememberWallpaper(updated);
   search.update(updated);
   for (const shortcut of byId("system-shortcuts").querySelectorAll("[data-module]")) {
     if (shortcut.dataset.module === "weather") shortcut.hidden = !updated.weather;
@@ -61,6 +64,8 @@ function applyPreferences(updated) {
   const weatherHost = document.querySelector("#settings-content .weather-settings-host");
   if (updated.weather && !weatherCleanup && weatherHost) weatherCleanup = mountWeather(weatherHost);
   if (!updated.weather && weatherCleanup) { weatherCleanup(); weatherCleanup = null; }
+  if (updated.weather && !homeWeather) homeWeather = mountHomeWeather(byId("home-weather"));
+  if (!updated.weather && homeWeather) { homeWeather.destroy(); homeWeather = null; }
   showTime();
 }
 
@@ -74,6 +79,7 @@ function navigate(shouldFocus = true) {
   const detail = Object.hasOwn(titles, name);
   const route = detail || name === "settings" ? name : "home";
   document.body.dataset.route=route;
+  if (route === "home") homeWeather?.sync();
   byId("home-view").hidden = route !== "home";
   byId("detail-view").hidden = !detail;
   byId("settings-view").hidden = route !== "settings";
@@ -125,6 +131,7 @@ const sections = [
   ["个人偏好", "#settings-content [name=name]"], ["界面配色", "#settings-content .settings-palette"],
   ["搜索", "#settings-content [name=engine]"],
   ["天气服务", "#settings-content .settings-weather"], ["首页壁纸", wallpaperSection],
+  ["内置工具", "#settings-content .settings-tools"],
   ["首页布局", "#layout-options section"],
   ["链接打开方式", "#layout-options [name=linksNewTab]"], ["壁纸库", "#wallpaper-collections"]
 ].map(([name, selector]) => {
@@ -155,21 +162,34 @@ function scheduleSettingsIndex() {
   if (settingsFrame || byId("settings-view").hidden) return;
   settingsFrame = requestAnimationFrame(() => {
     settingsFrame = 0;
-    if (chosenSettingsSection && Math.abs(chosenSettingsSection.y - window.scrollY) < 1) {
-      markSettingsSection(chosenSettingsSection.button);
-      return;
-    }
-    chosenSettingsSection = null;
-    const visible = sections.filter(entry => entry.section());
+    const rects = sections.map(entry => [entry, entry.section()?.getBoundingClientRect()]).filter(([, rect]) => rect);
+    if (!rects.length) return;
     const atEnd = window.scrollY + innerHeight >= document.documentElement.scrollHeight - 2;
     // Keep the highlighted entry in sync with the sticky header, which covers the section tops.
     const header = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--topbar-height")) || 0;
     const threshold = header + 24;
-    const current = atEnd ? visible.at(-1) : visible.filter(entry => entry.section().getBoundingClientRect().top <= threshold).at(-1) || visible[0];
-    if (current) markSettingsSection(current.button);
+    if (chosenSettingsSection) {
+      const chosenRect = rects.find(([entry]) => entry.button === chosenSettingsSection.button)?.[1];
+      // Bottom cards can never reach the top line; keep the click highlight while they stay on screen at page end.
+      const keep = Math.abs(chosenSettingsSection.y - window.scrollY) < 2 || (atEnd && chosenRect && chosenRect.top < innerHeight && chosenRect.bottom > 0);
+      if (keep) { markSettingsSection(chosenSettingsSection.button); return; }
+      chosenSettingsSection = null;
+    }
+    let current = rects.filter(([, rect]) => rect.top <= threshold).at(-1)?.[0];
+    if (atEnd) {
+      const upcoming = rects.find(([, rect]) => rect.top > threshold);
+      if (upcoming && upcoming[1].top < innerHeight * .5) current = upcoming[0];
+    }
+    current ||= rects[0][0];
+    markSettingsSection(current.button);
   });
 }
 window.addEventListener("scroll", scheduleSettingsIndex, {passive:true});
 window.addEventListener("resize", scheduleSettingsIndex);
+// Content height changes (expanded details, mounted weather panel) move section
+// tops without a scroll event; re-sync the index then too.
+const settingsResize = new ResizeObserver(scheduleSettingsIndex);
+settingsResize.observe(byId("settings-content"));
+settingsResize.observe(byId("layout-options"));
 window.addEventListener("hashchange", () => navigate());
 navigate(false);

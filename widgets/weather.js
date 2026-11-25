@@ -5,7 +5,7 @@ const CITIES_KEY = "daybreak.weather.cities";
 const API_KEY = "daybreak.weather.apiKey";
 const FRESH_FOR = 30 * 60 * 1000;
 const SOURCE = "高德天气";
-const CONFIG_HINT = "请先在「个人设置 → 天气服务」填写高德 Web 服务 API Key。";
+const CONFIG_HINT = "请先填写并保存 API Key。";
 
 async function read(key) {
   const storage = globalThis.chrome?.storage?.local;
@@ -166,7 +166,6 @@ export function mountWeather(root) {
     </div>
     <div class="weather-picker" hidden>
       <form class="weather-form" novalidate><input type="search" autocomplete="off" aria-label="城市名称" placeholder="输入城市名，例如 杭州" required><button type="submit">搜索</button></form>
-      <p class="weather-prompt">选择城市，查看当地天气。</p>
       <div class="weather-saved" hidden></div>
       <p class="weather-help" role="status" hidden></p>
       <ul class="weather-results" aria-label="匹配的城市" hidden></ul>
@@ -236,7 +235,6 @@ export function mountWeather(root) {
     if (open) {
       showSaved();
       input.value = "";
-      get(".weather-prompt").textContent = city ? "选择新的天气城市。" : "选择城市，查看当地天气。";
     }
   }
 
@@ -435,5 +433,54 @@ export function mountWeather(root) {
     window.removeEventListener("daybreak:weather-config", configChanged);
     root.replaceChildren();
     root.classList.remove("weather-widget");
+  };
+}
+
+/* Compact home readout (city · summary current° · low°~high°) under the date.
+   Reuses the cache the settings widget writes; click-through to weather setup. */
+export function mountHomeWeather(root) {
+  let active = true, controller = null;
+  const round = (value, unit) => Math.round(unit === "F" ? value * 9 / 5 + 32 : value);
+  async function snapshot() {
+    const [city, cached, preferred] = await Promise.all([CITY_KEY, CACHE_KEY, UNIT_KEY].map(key => read(key).catch(() => null)));
+    return { city, cached, unit: preferred === "F" ? "F" : "C" };
+  }
+  async function render() {
+    const { city, cached, unit } = await snapshot();
+    if (!active) return;
+    if (!validCity(city) || !matchesCache(cached, city)) { root.hidden = true; return; }
+    root.hidden = false;
+    root.textContent = `${city.name} · ${cached.summary || "天气"} ${round(cached.current, unit)}° · ${round(cached.low, unit)}°~${round(cached.high, unit)}°`;
+    root.title = [cached.wind, Number.isFinite(cached.humidity) ? "湿度 " + cached.humidity + "%" : "", "点击管理天气"].filter(Boolean).join(" · ");
+  }
+  async function refresh() {
+    await render();
+    const { city, cached } = await snapshot();
+    if (!active || !validCity(city) || !navigator.onLine) return;
+    if (cached && Date.now() - cached.fetched < FRESH_FOR) return;
+    const config = await weatherConfig();
+    if (!active || !config.key) return;
+    controller?.abort();
+    controller = new AbortController();
+    try {
+      const forecast = await amapForecast(city, config, controller);
+      if (!active) return;
+      await write(CACHE_KEY, forecast).catch(() => {});
+      render();
+    } catch { /* keep the cached readout */ }
+  }
+  const onStorage = (changes, area) => {
+    if (area === "local" && [CITY_KEY, CACHE_KEY, UNIT_KEY, API_KEY].some(key => key in changes)) refresh();
+  };
+  if (globalThis.chrome?.storage?.onChanged) chrome.storage.onChanged.addListener(onStorage);
+  refresh();
+  return {
+    sync: refresh,
+    destroy() {
+      active = false;
+      controller?.abort();
+      if (globalThis.chrome?.storage?.onChanged) chrome.storage.onChanged.removeListener(onStorage);
+      root.hidden = true;
+    },
   };
 }

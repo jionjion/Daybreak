@@ -54,6 +54,86 @@ export function applyWallpaper(target, prefs) {
   } else target.style.removeProperty("--custom-wallpaper");
 }
 
+/* Wallpaper-adaptive tint: sample the dominant hue so glass, scrim and floating
+   controls sit in the same color world as the art instead of neutral gray. */
+const wallHues = { lake: [160, 22], pine: [150, 30], paper: [45, 30] };
+let wallSampleToken = 0;
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  if (max === min) return [0, 0];
+  const d = max - min, l = (max + min) / 2;
+  const s = l > .5 ? d / (2 - max - min) : d / (max + min);
+  const h = max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [h * 60, s];
+}
+function setWallHue(h, s) {
+  const style = document.documentElement.style;
+  style.setProperty("--wall-hue", String(Math.round(h)));
+  style.setProperty("--wall-sat", Math.round(s) + "%");
+  try {
+    const boot = JSON.parse(localStorage.getItem("daybreak.boot") || "{}");
+    boot.hue = Math.round(h);
+    boot.sat = Math.round(s);
+    localStorage.setItem("daybreak.boot", JSON.stringify(boot));
+  } catch {}
+}
+/* Synchronous mirror for boot.js so the first paint already shows the saved
+   wallpaper instead of flashing the default lake/green. */
+export function rememberWallpaper(prefs) {
+  try {
+    const boot = {
+      theme: prefs.theme,
+      customImage: prefs.customImage || "",
+      wallpaperColor: prefs.wallpaperColor,
+      mask: normalizeRange(prefs.wallpaperMask, 85, 24) / 100,
+      blur: normalizeRange(prefs.wallpaperBlur, 24, 0),
+      fit: prefs.wallpaperFit,
+    };
+    const hue = document.documentElement.style.getPropertyValue("--wall-hue");
+    if (hue) {
+      boot.hue = Number(hue);
+      boot.sat = parseInt(document.documentElement.style.getPropertyValue("--wall-sat"), 10) || 22;
+    }
+    localStorage.setItem("daybreak.boot", JSON.stringify(boot));
+  } catch {}
+}
+export function applyWallpaperTint(prefs) {
+  if (prefs.theme === "color") {
+    const hex = prefs.wallpaperColor.slice(1);
+    const [h, s] = rgbToHsl(parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16));
+    setWallHue(h, Math.max(16, s * 100));
+    return;
+  }
+  if (prefs.theme !== "custom") {
+    const [h, s] = wallHues[prefs.theme] || wallHues.lake;
+    setWallHue(h, s);
+    return;
+  }
+  const token = ++wallSampleToken;
+  const image = new Image();
+  image.onload = () => {
+    if (token !== wallSampleToken) return;
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 24;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      context.drawImage(image, 0, 0, 24, 24);
+      const data = context.getImageData(0, 0, 24, 24).data;
+      let r = 0, g = 0, b = 0, n = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        const a = data[i + 3] / 255;
+        r += data[i] * a; g += data[i + 1] * a; b += data[i + 2] * a; n += a;
+      }
+      if (!n) return;
+      const [h, s] = rgbToHsl(r / n, g / n, b / n);
+      // Averages wash out toward white; boost saturation so the tint stays visible.
+      setWallHue(h, Math.min(60, Math.max(16, s * 160)));
+    } catch { /* keep previous hue */ }
+  };
+  image.src = prefs.customImage;
+}
+
 async function encodeWallpaper(file) {
   const url = URL.createObjectURL(file);
   const image = new Image();
@@ -86,7 +166,6 @@ export async function mountSettings(root, onChange) {
       </section>
       <section class="settings-card">
         <h2>界面配色</h2>
-        <p class="settings-help">主题色用于按钮、链接、选中状态和焦点样式，其余界面保持中性的白色与浅灰色。</p>
         <div class="settings-palette" role="group" aria-label="主题色"></div>
         <label class="settings-row"><span>自定义主题色</span><input name="accent" type="color" aria-label="自定义主题色"></label>
       </section>
@@ -104,15 +183,14 @@ export async function mountSettings(root, onChange) {
           <label>搜索网址<input class="settings-field" name="engineTemplate" type="text" required placeholder="https://example.com/search?q=%s" autocomplete="off"></label>
           <small>用 %s 代表搜索词。</small>
           <p class="settings-engine-error" role="alert" hidden></p>
-          <div class="settings-actions"><button class="settings-action" type="submit">保存引擎</button><button class="settings-action settings-engine-cancel" type="button">取消</button></div>
+          <div class="settings-actions"><button class="settings-action settings-action-primary" type="submit">保存引擎</button><button class="settings-action settings-engine-cancel" type="button">取消</button></div>
         </form>
       </section>
       <section class="settings-card settings-weather">
         <h2>天气服务</h2>
-        <p class="settings-help">天气和城市搜索使用高德开放平台。请在 <a href="https://console.amap.com/dev/key/app" target="_blank" rel="noopener noreferrer">控制台</a> 创建「Web 服务」Key；个人开发者有免费调用额度。</p>
         <label class="settings-row"><span>高德 API Key</span><input class="settings-field" name="weatherApiKey" type="password" autocomplete="off" spellcheck="false" placeholder="粘贴 Web 服务 Key"></label>
-        <p class="settings-help">天气查询和城市搜索共用这个 Key；保存后在下方选择城市、温度单位和查看逐日预报。</p>
-        <div class="settings-actions"><button class="settings-action weather-service-save" type="button">保存天气服务</button></div>
+        <p class="settings-help"><a href="https://console.amap.com/dev/key/app" target="_blank" rel="noopener noreferrer">获取高德「Web 服务」Key</a></p>
+        <div class="settings-actions"><button class="settings-action settings-action-primary weather-service-save" type="button">保存天气服务</button></div>
         <p class="settings-weather-status" role="status"></p>
         <div class="weather-settings-host"></div>
       </section>
@@ -126,7 +204,7 @@ export async function mountSettings(root, onChange) {
         <label class="settings-row"><span>遮罩浓度</span><span class="settings-slider"><input name="wallpaperMask" type="range" min="0" max="85"><output aria-hidden="true"></output></span></label>
         <label class="settings-row"><span>壁纸模糊</span><span class="settings-slider"><input name="wallpaperBlur" type="range" min="0" max="24"><output aria-hidden="true"></output></span></label>
       </section>
-      <section class="settings-card">
+      <section class="settings-card settings-tools">
         <h2>内置工具</h2>
         <label class="settings-row"><span>天气</span><input class="settings-switch" name="weather" type="checkbox" role="switch"></label>
       </section>
