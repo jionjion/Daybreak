@@ -1,0 +1,104 @@
+.bookmarks-compact {
+  --bm-ink: var(--ink, #242423);
+  --bm-muted: var(--subtle, #6e6e69);
+  --bm-hover: var(--hover, #f2f2f0);
+  --bm-line: var(--line, #e4e4e1);
+  --bm-paper: var(--surface, #ffffff);
+  --bm-accent: var(--accent, #3f3f3c);
+  --bm-accent-text: var(--accent-text, #2f2f2c);
+  --bm-accent-line: var(--accent-line, #cfcfcc);
+  color: var(--bm-ink);
+}
+.bookmarks-sheets {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  margin: 0 0 14px;
+  padding: 0 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-bottom: 1px solid var(--bm-line);
+  scrollbar-width: thin;
+}
+.bookmarks-sheet {
+  flex: none;
+  max-width: 170px;
+  padding: 7px 10px 6px;
+  overflow: hidden;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 7px 7px 0 0;
+  background: transparent;
+  color: var(--bm-muted);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 550;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.bookmarks-sheet:hover { background: var(--bm-hover); color: var(--bm-ink); }
+.bookmarks-sheet[aria-selected="true"] { border-bottom-color: var(--bm-accent); color: var(--bm-accent-text); }
+.bookmarks-sheets[hidden] { display: none; }
+.bookmarks-list { min-width: 0; }
+.bookmarks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr));
+  gap: 4px 8px;
+}
+.bookmarks-tile { min-width: 0; }
+.bookmarks-link {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 34px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--bm-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: none;
+}
+.bookmarks-link:hover { background: var(--bm-hover); }
+.bookmarks-link:hover .bookmarks-name { text-decoration: underline; text-underline-offset: 3px; }
+.bookmarks-monogram {
+  display: grid;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 6px;
+  font: 600 11px/1 "Georgia", "Microsoft YaHei", sans-serif;
+  opacity: var(--daybreak-icon-opacity, 1);
+}
+.bookmarks-monogram[data-color="0"] { color: #326152; background: #dcece1; }
+.bookmarks-monogram[data-color="1"] { color: #83522e; background: #f4e4d1; }
+.bookmarks-monogram[data-color="2"] { color: #476480; background: #e0eaf0; }
+.bookmarks-monogram[data-color="3"] { color: #776633; background: #f1eacb; }
+.bookmarks-monogram[data-color="4"] { color: #69527a; background: #ece5ec; }
+.bookmarks-monogram[data-color="5"] { color: #854e50; background: #f2dfe0; }
+.bookmarks-copy { display: block; min-width: 0; max-width: 100%; }
+.bookmarks-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.bookmarks-browser-icon { display: block; width: 100%; height: 100%; object-fit: contain; }
+.bookmarks-compact .bookmarks-name { display: var(--daybreak-icon-label-display, block); }
+
+.bookmarks-empty { margin: 0; padding: 8px 0 12px; color: var(--bm-muted); font-size: 13px; line-height: 1.7; }
+.bookmarks-compact :focus-visible { outline: 2px solid var(--bm-accent); outline-offset: 2px; }
+@media (max-width: 640px) {
+  .bookmarks-compact .bookmarks-grid { gap: 2px 6px; }
+  .bookmarks-empty { padding-block: 4px 12px; }
+}
