@@ -1,6 +1,7 @@
 .favorites-panel, .favorites-compact, .favorites-popup, .favorites-dialog, .favorites-section-actions {
   --fav-ink: var(--ink, #242423);
   --fav-muted: var(--subtle, #6e6e69);
+  --fav-hover: var(--hover, #f1efe7);
   --fav-line: var(--line, #e4e4e1);
   --fav-paper: var(--surface, #ffffff);
   --fav-accent: var(--accent, #3f3f3c);
@@ -40,7 +41,7 @@
 .favorites-primary { background: var(--fav-accent); border-color: var(--fav-accent); color: var(--accent-contrast, #ffffff); }
 .favorites-primary:hover { background: var(--fav-accent-strong); }
 .favorites-secondary, .favorites-edit { background: transparent; color: var(--fav-ink); }
-.favorites-secondary:hover, .favorites-edit:hover { background: var(--hover, #f1efe7); }
+.favorites-secondary:hover, .favorites-edit:hover { background: var(--fav-hover); }
 .favorites-grid { display: grid; gap: 10px; }
 .favorites-panel .favorites-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 0 24px; }
 .favorites-compact .favorites-grid {
@@ -189,7 +190,7 @@
   border-radius: 6px; font: inherit; font-size: 12px; line-height: 1.4; cursor: pointer;
 }
 .favorites-desk-action[aria-pressed="true"], .favorites-desk-back, .favorites-page-step { border-color: var(--fav-line); }
-.favorites-desk-back:hover, .favorites-desk-action:hover, .favorites-step:hover, .favorites-page-step:hover { background: var(--hover, #f1efe7); }
+.favorites-desk-back:hover, .favorites-desk-action:hover, .favorites-step:hover, .favorites-page-step:hover { background: var(--fav-hover); }
 .favorites-arrange-controls { flex-wrap: nowrap; justify-content: center; gap: 1px; margin-top: 3px; }
 .favorites-step { padding: 3px 4px; font-size: 12px; }
 .favorites-step:disabled, .favorites-page-step:disabled { opacity: .4; cursor: default; }
@@ -222,7 +223,7 @@
   content: ""; transform: translateY(-1px) rotate(45deg);
 }
 .favorites-menu-primary { background: var(--fav-accent-soft); color: var(--fav-accent-text); }
-.favorites-menu-trigger:hover, .favorites-menu-trigger[aria-expanded="true"] { background: var(--hover, #f1efe7); color: var(--fav-ink); }
+.favorites-menu-trigger:hover, .favorites-menu-trigger[aria-expanded="true"] { background: var(--fav-hover); color: var(--fav-ink); }
 .favorites-menu {
   position: absolute; z-index: 12; top: calc(100% + 5px); right: 0; width: max-content; min-width: 156px;
   max-width: calc(100vw - 32px); padding: 4px; background: var(--fav-paper); border: 1px solid var(--fav-line);

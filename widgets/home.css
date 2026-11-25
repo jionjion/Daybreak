@@ -35,6 +35,13 @@ body[data-route="home"] .hero-inner { padding-inline:0; }
 body[data-route="home"] #quick-strip { color:#fffef4; text-shadow:0 1px 6px #0b201899; }
 body[data-route="home"][data-wall-theme="paper"] #quick-strip { color:#3e4332; text-shadow:0 1px 3px #fffef4aa; }
 body[data-wall-theme="paper"] .wall-layer::after { background:linear-gradient(180deg,#fffef414,#fffef42e); }
+body[data-route="home"] .favorites-band :is(.favorites-compact, .favorites-section-actions) {
+  --fav-muted: var(--glass-muted, var(--subtle));
+  --fav-hover: var(--glass-hover, var(--hover));
+  --fav-line: var(--glass-line, var(--line));
+  --fav-accent-soft: var(--glass-accent-soft, var(--accent-soft));
+  --fav-accent-line: var(--glass-accent-line, var(--accent-line));
+}
 body[data-route="home"]:not([data-home-layout="classic"]):not([data-home-layout="minimal"]) .favorites-band {
   padding:16px clamp(18px,2vw,24px);
   border:1px solid var(--glass-border);

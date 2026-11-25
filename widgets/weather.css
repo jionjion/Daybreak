@@ -32,7 +32,7 @@
   white-space: nowrap;
   cursor: pointer;
 }
-.weather-widget :is(.weather-change, .weather-refresh, .weather-cancel):hover { background: var(--hover); }
+.weather-widget :is(.weather-change, .weather-refresh, .weather-cancel):hover { background: var(--widget-hover, var(--hover)); }
 .weather-widget .weather-reading { flex-wrap: wrap; gap: 12px; margin: 8px 0 12px; }
 .weather-widget .weather-temperature { font-size: clamp(32px, 3.2vw, 44px); font-weight: 500; line-height: 1.12; font-variant-numeric: tabular-nums; }
 .weather-widget .weather-reading span { display: block; }
@@ -62,14 +62,14 @@
   flex: none;
   height: 38px;
   padding: 0 12px;
-  border: 1px solid var(--accent-line);
+  border: 1px solid var(--widget-accent-line, var(--accent-line));
   border-radius: 7px;
-  background: var(--accent-soft);
+  background: var(--widget-accent-soft, var(--accent-soft));
   color: var(--weather-accent-text);
   font-size: 14px;
   font-weight: 500;
 }
-.weather-widget .weather-form button:hover { background: color-mix(in srgb, var(--weather-accent) 20%, var(--surface)); }
+.weather-widget .weather-form button:hover { background: color-mix(in srgb, var(--weather-accent) 22%, transparent); }
 .widget-card .weather-widget .weather-prompt { margin: 10px 0 0; color: var(--weather-muted); font-size: 13px; line-height: 1.6; }
 .weather-widget .weather-results { list-style: none; margin: 6px 0 0; padding: 0; max-height: 220px; overflow: auto; }
 .weather-widget .weather-results button {
@@ -88,7 +88,7 @@
   font-size: 14px;
   overflow-wrap: anywhere;
 }
-.weather-widget .weather-results button:hover { background: var(--hover); }
+.weather-widget .weather-results button:hover { background: var(--widget-hover, var(--hover)); }
 .weather-widget .weather-results span { color: var(--weather-muted); font-size: 12px; text-align: end; }
 .weather-widget .weather-help, .weather-widget .weather-status { margin: 8px 0 0; }
 .weather-widget .weather-credit { margin-top: 6px; }

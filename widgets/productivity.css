@@ -2,11 +2,13 @@
 .widget-card {
   --widget-pad: clamp(16px, 1.5vw, 22px);
   --widget-ink: var(--ink);
-  --widget-muted: var(--subtle);
-  --widget-line: var(--line);
-  --widget-rule: var(--rule);
-  --widget-field: var(--field);
-  --widget-hover: var(--hover);
+  --widget-muted: var(--glass-muted, var(--subtle));
+  --widget-line: var(--glass-line, var(--line));
+  --widget-rule: var(--glass-rule, var(--rule));
+  --widget-field: var(--glass-field, var(--field));
+  --widget-hover: var(--glass-hover, var(--hover));
+  --widget-accent-soft: var(--glass-accent-soft, var(--accent-soft));
+  --widget-accent-line: var(--glass-accent-line, var(--accent-line));
   --widget-accent: var(--accent);
   --widget-accent-text: var(--accent-text);
   position: relative;
@@ -133,12 +135,12 @@
   padding: 0;
   border: 0;
   border-radius: 6px;
-  background: var(--accent-soft);
+  background: var(--widget-accent-soft);
   color: var(--widget-accent-text);
   font-size: 21px;
   line-height: 1;
 }
-.widget-card .tasks-add:hover { background: color-mix(in srgb, var(--accent) 20%, var(--surface)); }
+.widget-card .tasks-add:hover { background: color-mix(in srgb, var(--widget-accent) 22%, transparent); }
 .widget-card .tasks-filters {
   display: inline-flex;
   flex-wrap: wrap;
@@ -160,8 +162,8 @@
   line-height: 1.4;
 }
 .widget-card .tasks-filter[aria-pressed="true"] {
-  border-color: var(--accent-line);
-  background: var(--accent-soft);
+  border-color: var(--widget-accent-line);
+  background: var(--widget-accent-soft);
   color: var(--widget-accent-text);
   box-shadow: none;
   font-weight: 600;
@@ -258,7 +260,7 @@
 .widget-card .notes-result { overflow-wrap: anywhere; text-align: left; }
 .widget-card .notes-title-label { display: grid; gap: 4px; margin: 12px 0 5px; color: var(--widget-muted); font-size: 12px; }
 .widget-card :is(.notes-action,.tasks-action) { border: 1px solid var(--widget-line); background: var(--widget-field); }
-.widget-card .notes-action[aria-pressed="true"] { border-color: var(--accent-line); background: var(--accent-soft); }
+.widget-card .notes-action[aria-pressed="true"] { border-color: var(--widget-accent-line); background: var(--widget-accent-soft); }
 .widget-card .tasks-badge-label { display: flex; align-items: center; gap: 8px; margin: 10px 0; color: var(--widget-muted); font-size: 13px; }
 .widget-card .tasks-badge-label input { flex: none; margin: 0; accent-color: var(--widget-accent); }
 .widget-card [hidden] { display: none !important; }
@@ -277,7 +279,7 @@
   color: var(--accent-text);
   font-size: 13px;
 }
-#drawer-content .widget-card { --widget-pad: 0px; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; }
+#drawer-content .widget-card { --widget-pad: 0px; --widget-muted: var(--subtle); min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; }
 #drawer-content .tasks-list { max-height: min(55vh, 500px); }
 #drawer-content .notes-editor, #drawer-content .notes-preview { min-height: 148px; }
 
