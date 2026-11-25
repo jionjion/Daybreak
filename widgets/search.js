@@ -75,30 +75,19 @@ export async function savePrefs(values) {
 }
 
 async function localSuggestions(query) {
-  const storage = globalThis.chrome?.storage?.local;
-  const matches = text => String(text || "").toLocaleLowerCase().includes(query.toLocaleLowerCase());
-  async function favorites() {
-    let pairs;
-    if (storage) {
-      const keys = storage.getKeys ? (await storage.getKeys()).filter(key => key.startsWith("daybreak.favorite.")) : null;
-      pairs = Object.entries(await storage.get(keys));
-    } else {
-      pairs = Object.keys(localStorage).filter(key => key.startsWith("daybreak.favorite.")).map(key => {
-        try { return [key, JSON.parse(localStorage.getItem(key))]; } catch { return [key,null]; }
-      });
-    }
-    return pairs.filter(([key,item]) => key.startsWith("daybreak.favorite.") && item && (matches(item.title) || matches(item.url)))
-      .map(([,item]) => ({...item, source:"收藏"}));
+  const bookmarks = globalThis.chrome?.bookmarks;
+  async function saved() {
+    if (!bookmarks?.search) return [];
+    const found = await bookmarks.search(query);
+    return found
+      .filter(item => typeof item.url === "string" && addressFor(item.url))
+      .map(item => ({title: item.title || new URL(item.url).hostname, url: item.url, source:"书签"}));
   }
-  const history = globalThis.chrome?.history;
-  const [sites, visits] = await Promise.all([
-    favorites().catch(() => []),
-    history ? history.search({text:query, startTime:0, maxResults:8}).catch(() => []) : [],
-  ]);
+  const sites = await saved().catch(() => []);
   const unique = new Map();
-  for (const item of [...sites,...visits.map(item => ({...item,source:"历史"}))]) {
+  for (const item of sites) {
     const url = typeof item.url === "string" && addressFor(item.url);
-    if (url && !unique.has(url)) unique.set(url, {url, title:item.title || new URL(url).hostname, source:item.source});
+    if (url && !unique.has(url)) unique.set(url, {url, title:item.title || new URL(url).hostname, source:"书签"});
     if (unique.size >= 7) break;
   }
   return [...unique.values()];

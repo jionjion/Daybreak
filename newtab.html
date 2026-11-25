@@ -8,13 +8,12 @@
   <link rel="icon" href="assets/icon32.png">
   <link rel="stylesheet" href="fonts.css">
   <link rel="stylesheet" href="theme.css">
-  <link rel="stylesheet" href="widgets/favorites.css">
+  <link rel="stylesheet" href="widgets/bookmarks.css">
   <link rel="stylesheet" href="widgets/library.css">
   <link rel="stylesheet" href="widgets/weather.css">
   <link rel="stylesheet" href="widgets/settings.css">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="widgets/home.css">
-  <link rel="stylesheet" href="widgets/productivity.css">
   <link rel="stylesheet" href="widgets/wallpapers.css">
   <script type="module" src="app.js"></script>
 </head>
@@ -32,28 +31,20 @@
             <form id="search-form" class="search-form" role="search" novalidate>
               <button id="engine-button" class="engine-button" type="button" aria-label="切换搜索引擎" aria-haspopup="true" aria-expanded="false" title="切换搜索引擎"></button>
               <input id="query" type="text" autocomplete="off" placeholder="搜索或输入网址" aria-label="搜索或输入网址" required>
-              <kbd aria-hidden="true">/</kbd>
-              <button id="search-submit" type="submit" aria-label="开始搜索"><i data-icon="arrow"></i></button>
             </form>
             <div class="search-foot">
               <div id="search-categories"></div>
             </div>
           </div>
         </div>
-        <div class="wall-actions"><button id="wall-next" type="button" aria-label="切换到下一张壁纸" title="切换到下一张壁纸"><i data-icon="rotate"></i></button><a class="hero-edit" href="#settings/wallpaper" aria-label="更换首页背景" title="更换首页背景"><i data-icon="image"></i></a></div>
         <p class="wall-message" role="status"></p>
       </div>
       <div id="system-shortcuts" aria-label="内置工具"></div>
-      <section class="favorites-band" aria-labelledby="quick-heading">
-        <div class="section-head"><h2 id="quick-heading">网页收藏</h2><div id="quick-actions"></div></div>
-        <div id="favorites-compact"></div>
+      <section class="bookmarks-band" aria-label="浏览器书签">
+        <div id="bookmarks-compact"></div>
       </section>
-      <div class="widget-grid">
-        <section class="widget-card card-tasks" id="tasks-card" aria-label="待办事项"><i class="card-icon" data-icon="check"></i><div id="tasks-content"></div></section>
-        <section class="widget-card card-notes" id="notes-card" aria-labelledby="notes-heading"><div class="card-head"><i class="card-icon" data-icon="note"></i><h2 id="notes-heading">笔记</h2></div><div id="notes-content"></div></section>
-        <section class="widget-card card-weather" id="weather-card" aria-labelledby="weather-heading"><div class="card-head"><i class="card-icon" data-icon="weather"></i><h2 id="weather-heading">天气</h2></div><div id="weather-content"></div></section>
-      </div>
     </section>
+    <div class="wall-actions"><a class="hero-edit" href="#settings" aria-label="个人设置" title="个人设置"><i data-icon="settings"></i></a><button id="wall-next" type="button" aria-label="刷新壁纸" title="刷新壁纸"><i data-icon="rotate"></i></button><a class="hero-edit" href="#settings/wallpaper" aria-label="更换壁纸" title="更换壁纸"><i data-icon="image"></i></a></div>
     <section id="detail-view" aria-labelledby="detail-title" hidden>
       <div class="page-head"><div class="page-crumb"><a href="#home"><i data-icon="left"></i>返回今日</a></div><h1 id="detail-title"></h1></div>
       <div id="detail-content"></div>
@@ -66,21 +57,5 @@
       <div id="more-preferences" class="settings-panel"><section id="wallpaper-collections" class="settings-card"></section></div>
     </section>
   </main>
-  <nav class="dock" aria-label="主导航">
-    <button type="button" data-panel="home"><i data-icon="home"></i>今日</button>
-    <button type="button" data-panel="favorites" aria-haspopup="dialog"><i data-icon="star"></i>收藏</button>
-    <button type="button" data-panel="bookmarks" aria-haspopup="dialog"><i data-icon="bookmark"></i>书签</button>
-    <button type="button" data-panel="history" aria-haspopup="dialog"><i data-icon="history"></i>历史</button>
-    <button type="button" data-panel="settings" aria-haspopup="dialog" aria-label="个人设置"><i data-icon="settings"></i>设置</button>
-  </nav>
-  <dialog id="side-drawer" aria-label="侧边面板">
-    <div class="drawer-grip" role="separator" aria-orientation="vertical" aria-label="拖动调整侧边栏宽度" tabindex="0"></div>
-    <header class="drawer-head">
-      <h2 id="side-drawer-title"></h2>
-      <button type="button" class="drawer-close" aria-label="关闭侧边面板">关闭</button>
-    </header>
-    <div id="side-drawer-content"></div>
-  </dialog>
-  <dialog id="widget-drawer" aria-label="首页小工具"><button type="button" class="drawer-close" aria-label="关闭小工具">关闭</button><div id="drawer-content"></div></dialog>
 </body>
 </html>

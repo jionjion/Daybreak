@@ -70,7 +70,7 @@
   font-weight: 500;
 }
 .weather-widget .weather-form button:hover { background: color-mix(in srgb, var(--weather-accent) 22%, transparent); }
-.widget-card .weather-widget .weather-prompt { margin: 10px 0 0; color: var(--weather-muted); font-size: 13px; line-height: 1.6; }
+.weather-widget .weather-prompt { margin: 10px 0 0; color: var(--weather-muted); font-size: 13px; line-height: 1.6; }
 .weather-widget .weather-results { list-style: none; margin: 6px 0 0; padding: 0; max-height: 220px; overflow: auto; }
 .weather-widget .weather-results button {
   display: flex;

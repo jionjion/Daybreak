@@ -1,13 +1,13 @@
 const prefix = "daybreak.layout.";
 const defaults = {
   mode: "dashboard", clock: true, search: true, labels: true,
-  iconSize: 54, iconRadius: 15, iconOpacity: 100, columns:6, rows:1,
+  iconSize: 54, iconRadius: 15, iconOpacity: 100,
   iconShadow:false, textShadow:true, fontSize:13, fontFace:"system",labelColor:"auto",
-  searchWidth:574, searchRadius:10,searchOpacity:100,searchShadow:true,homeScale:100,sideScale:100,
-  bookmarkBar: false, frequentBar: false, linksNewTab: true, bookmarksNewTab: true, historyNewTab: true
+  searchWidth:640, searchRadius:10,searchOpacity:100,searchShadow:true,homeScale:100,
+  bookmarkBar: false, frequentBar: false, linksNewTab: true, bookmarksNewTab: true
 };
-const ranges = { iconSize: [34, 104], iconRadius: [0, 52], iconOpacity: [25, 100], columns:[2,8], rows:[1,6],
-  fontSize:[10,22],searchWidth:[285,900],searchRadius:[0,32],searchOpacity:[35,100],homeScale:[75,130],sideScale:[75,130] };
+const ranges = { iconSize: [34, 104], iconRadius: [0, 52], iconOpacity: [25, 100],
+  fontSize:[10,22],searchWidth:[285,900],searchRadius:[0,32],searchOpacity:[35,100],homeScale:[75,130] };
 const modes = { dashboard:"工作台", classic:"经典图标", minimal:"极简" };
 const selections = {mode:modes,fontFace:{system:"系统字体",serif:"衬线",mono:"等宽"},labelColor:{auto:"跟随主题",light:"米白",dark:"深色",gold:"琥珀"}};
 const keys = Object.keys(defaults).map(key => prefix + key);
@@ -56,28 +56,22 @@ export function mountLayout(root, apply) {
     for (const [key, node] of fields) {
       if (node.type === "checkbox") node.checked = values[key];
       else node.value = values[key];
-      if (node.type === "range") node.nextElementSibling.textContent = values[key] + ({iconOpacity:"%",iconSize:" px",iconRadius:" px",fontSize:" px",searchWidth:" px",searchRadius:" px",searchOpacity:"%",homeScale:"%",sideScale:"%"}[key] || "");
+      if (node.type === "range") node.nextElementSibling.textContent = values[key] + ({iconOpacity:"%",iconSize:" px",iconRadius:" px",fontSize:" px",searchWidth:" px",searchRadius:" px",searchOpacity:"%",homeScale:"%"}[key] || "");
     }
     const style = document.documentElement.style;
     style.setProperty("--daybreak-icon-size",values.iconSize + "px");
     style.setProperty("--daybreak-icon-radius",values.iconRadius + "px");
     style.setProperty("--daybreak-icon-opacity",String(values.iconOpacity / 100));
     style.setProperty("--daybreak-icon-label-display",values.labels ? "block" : "none");
-    style.setProperty("--daybreak-icon-columns",String(values.columns));
     for(const [variable,value] of Object.entries({
       "--icon-shadow":values.iconShadow?"0 3px 10px rgb(28 24 16 / .34)":"none",
       "--label-shadow":values.textShadow?"0 1px 4px rgb(24 20 14 / .6)":"none",
       "--label-size":values.fontSize+"px","--label-font":{system:"inherit",serif:"Georgia, SimSun, serif",mono:"Consolas, monospace"}[values.fontFace],
       "--search-width":values.searchWidth+"px","--search-radius":values.searchRadius+"px","--search-alpha":values.searchOpacity/100,
-      "--search-shadow":values.searchShadow?"0 2px 10px rgb(30 26 18 / .21)":"none","--home-zoom":values.homeScale/100,"--side-zoom":values.sideScale/100
+      "--search-shadow":values.searchShadow?"0 2px 10px rgb(30 26 18 / .21)":"none","--home-zoom":values.homeScale/100
     }))style.setProperty(variable,String(value));
     if(values.labelColor==="auto")style.removeProperty("--label-color");
     else style.setProperty("--label-color",{dark:"var(--accent-text)",light:"#fffdf1",gold:"#e7bf6c"}[values.labelColor]);
-    const pageSize = Math.round(values.rows)*Math.round(values.columns);
-    if(document.documentElement.dataset.iconsPerPage!==String(pageSize)){
-      document.documentElement.dataset.iconsPerPage=String(pageSize);
-      window.dispatchEvent(new Event("daybreak-icon-layout"));
-    }
     document.body.dataset.homeLayout = values.mode;
     document.body.dataset.showClock = String(values.clock);
     document.body.dataset.showSearch = String(values.search);
@@ -114,10 +108,10 @@ export function mountLayout(root, apply) {
     });
     card.append(row);
   }
-  for (const [key,label] of Object.entries({mode:"显示模式",clock:"显示时钟",search:"显示搜索框",bookmarkBar:"顶部显示书签",frequentBar:"顶部显示常用网站",labels:"显示图标名称",columns:"桌面收藏列数",rows:"每页收藏行数",iconSize:"图标大小",iconRadius:"图标圆角",iconOpacity:"图标不透明度"})) field(layout,key,label);
-  for(const [key,label] of Object.entries({fontFace:"图标名称字体",fontSize:"图标名称字号",labelColor:"图标名称颜色",iconShadow:"图标阴影",textShadow:"经典布局文字阴影",searchWidth:"搜索框宽度",searchRadius:"搜索框圆角",searchOpacity:"搜索框不透明度",searchShadow:"搜索框阴影",homeScale:"首页内容缩放",sideScale:"侧边栏内容缩放"}))field(appearance,key,label);
+  for (const [key,label] of Object.entries({mode:"显示模式",clock:"显示时钟",search:"显示搜索框",bookmarkBar:"顶部显示书签",frequentBar:"顶部显示常用网站",labels:"显示图标名称",iconSize:"图标大小",iconRadius:"图标圆角",iconOpacity:"图标不透明度"})) field(layout,key,label);
+  for(const [key,label] of Object.entries({fontFace:"图标名称字体",fontSize:"图标名称字号",labelColor:"图标名称颜色",iconShadow:"图标阴影",textShadow:"经典布局文字阴影",searchWidth:"搜索框宽度",searchRadius:"搜索框圆角",searchOpacity:"搜索框不透明度",searchShadow:"搜索框阴影",homeScale:"首页内容缩放"}))field(appearance,key,label);
   layout.append(appearance);
-  for (const [key,label] of Object.entries({linksNewTab:"在新标签页打开收藏网站",bookmarksNewTab:"在新标签页打开书签",historyNewTab:"在新标签页打开历史记录"})) field(opening,key,label);
+  for (const [key,label] of Object.entries({linksNewTab:"在新标签页打开首页书签",bookmarksNewTab:"在新标签页打开书签列表"})) field(opening,key,label);
   root.append(status);
   let request=0;
   async function refresh() {
@@ -167,45 +161,18 @@ export function setupQuickStrip(root) {
   return values=>{ current=values; refresh(); };
 }
 
-export function setupWidgetDrawer(dialog, container, drawIcon) {
-  const content = dialog.querySelector("#drawer-content");
-  let origin, activeCard;
-  function restore() {
-    if (!origin) return;
-    origin.replaceWith(activeCard); origin=null; activeCard=null;
-  }
-  dialog.addEventListener("close",()=>{ if (!dialog.open) restore(); });
-  dialog.querySelector(".drawer-close").addEventListener("click",()=>dialog.close());
-  dialog.addEventListener("click", event => {
-    if (event.target !== dialog) return;
-    const rect = dialog.getBoundingClientRect();
-    const outside = event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom;
-    if (outside) dialog.close();
-  });
-  for (const [id,title,glyph] of [
-    ["weather","天气","weather"], ["tasks","待办事项","check"], ["notes","笔记","note"],
-    ["bookmarks","书签","bookmark"], ["history","历史记录","history"],
-    ["settings","设置","settings"]
+export function setupSystemShortcuts(container, drawIcon) {
+  for (const [id,title,glyph,href] of [
+    ["weather","天气","weather","#settings/weather"],
+    ["bookmarks","书签","bookmark","#bookmarks"],
+    ["settings","设置","settings","#settings"]
   ]) {
-    const card=document.getElementById(id+"-card");
-    const button=el(card?"button":"a",null,"system-tile");
-    button.setAttribute("aria-label",title);button.dataset.module=id;
+    const link=el("a",null,"system-tile");
+    link.href=href;
+    link.setAttribute("aria-label",title);link.dataset.module=id;
     const icon=el("span",null,"system-glyph");
     drawIcon(icon,glyph);
-    button.append(icon,el("span",title,"system-label"));
-    if(card) button.addEventListener("click",()=>{
-      if(dialog.open) return;
-      origin=document.createComment("widget"); activeCard=card; card.before(origin);
-      content.append(card); dialog.setAttribute("aria-label",title);dialog.showModal();
-    });
-    else button.href="#"+id;
-    container.append(button);
+    link.append(icon,el("span",title,"system-label"));
+    container.append(link);
   }
-  const taskTile=container.querySelector('[data-module="tasks"]');
-  const badge=el("span","","shortcut-count");badge.hidden=true;taskTile.append(badge);
-  document.addEventListener("daybreak-task-count",e=>{
-    const n=Number(e.detail)||0;badge.hidden=n<=0;badge.textContent=n>99?"99+":String(n);
-    taskTile.setAttribute("aria-label",n>0?"待办事项，"+n+" 项未完成":"待办事项");
-  });
-  return () => { if(dialog.open)dialog.close(); restore(); };
 }

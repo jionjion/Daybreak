@@ -2,19 +2,17 @@
   "manifest_version": 3,
   "name": "Daybreak 晨屿",
   "version": "1.1.1",
-  "description": "自己的浏览器起始页，集中管理网页收藏、书签、历史、笔记、待办与天气。",
-  "permissions": ["storage", "unlimitedStorage", "activeTab", "bookmarks", "history", "alarms", "search", "favicon"],
-  "optional_permissions": ["topSites", "notifications"],
+  "description": "自己的浏览器起始页，展示浏览器书签与天气设置。",
+  "permissions": ["storage", "unlimitedStorage", "activeTab", "bookmarks", "search", "favicon"],
+  "optional_permissions": ["topSites"],
   "background": {"service_worker":"background.js","type":"module"},
   "host_permissions": [
-    "https://*.qweatherapi.com/*",
-    "https://*.qweather.com/*",
+    "https://restapi.amap.com/*",
     "https://www.bing.com/*"
   ],
   "icons": {"16":"assets/icon16.png","32":"assets/icon32.png","48":"assets/icon48.png","128":"assets/icon128.png"},
   "action": {
-    "default_title": "晨屿 · 收藏当前网页",
-    "default_popup": "popup.html",
+    "default_title": "打开晨屿",
     "default_icon": {"16":"assets/icon16.png","32":"assets/icon32.png","48":"assets/icon48.png"}
   },
   "chrome_url_overrides": {"newtab":"newtab.html"}

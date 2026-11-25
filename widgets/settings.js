@@ -7,7 +7,7 @@ const defaults = {
   name: "", engine: "bing", clock24: true, theme: "lake", customImage: "",
   customEngines: [], searchNewTab: false, keepQuery: false, hideCategories: false, searchSuggestions: false,
   wallpaperMask: 24, wallpaperBlur: 0, wallpaperFit: "cover", wallpaperColor: "#244c39", accent: DEFAULT_ACCENT,
-  tasks: true, notes: true, weather: true,
+  weather: true,
 };
 const themes = { lake: "湖光", pine: "松林", paper: "米纸", color: "纯色", custom: "自选图片" };
 const storage = globalThis.chrome?.storage?.local;
@@ -96,7 +96,7 @@ export async function mountSettings(root, onChange) {
         <label class="settings-row"><span>在新标签页打开搜索结果</span><input class="settings-switch" name="searchNewTab" type="checkbox" role="switch"></label>
         <label class="settings-row"><span>搜索后保留输入内容</span><input class="settings-switch" name="keepQuery" type="checkbox" role="switch"></label>
         <label class="settings-row"><span>隐藏搜索类别</span><input class="settings-switch" name="hideCategories" type="checkbox" role="switch"></label>
-        <label class="settings-row"><span>显示收藏与浏览历史建议</span><input class="settings-switch" name="searchSuggestions" type="checkbox" role="switch"></label>
+        <label class="settings-row"><span>显示书签搜索建议</span><input class="settings-switch" name="searchSuggestions" type="checkbox" role="switch"></label>
         <div class="settings-custom-list"></div>
         <button type="button" class="settings-action settings-new-engine">添加自定义搜索引擎</button>
         <form class="settings-engine-form" hidden novalidate>
@@ -109,11 +109,12 @@ export async function mountSettings(root, onChange) {
       </section>
       <section class="settings-card settings-weather">
         <h2>天气服务</h2>
-        <p class="settings-help">天气和城市搜索使用和风天气。请在 <a href="https://console.qweather.com/" target="_blank" rel="noopener noreferrer">控制台</a> 创建项目，取得 API Host 和 API Key。</p>
-        <label class="settings-row"><span>API Host</span><input class="settings-field" name="weatherApiHost" type="url" autocomplete="off" spellcheck="false" placeholder="https://xxxxxx.re.qweatherapi.com"></label>
-        <label class="settings-row"><span>API Key</span><input class="settings-field" name="weatherApiKey" type="password" autocomplete="off" spellcheck="false"></label>
+        <p class="settings-help">天气和城市搜索使用高德开放平台。请在 <a href="https://console.amap.com/dev/key/app" target="_blank" rel="noopener noreferrer">控制台</a> 创建「Web 服务」Key；个人开发者有免费调用额度。</p>
+        <label class="settings-row"><span>高德 API Key</span><input class="settings-field" name="weatherApiKey" type="password" autocomplete="off" spellcheck="false" placeholder="粘贴 Web 服务 Key"></label>
+        <p class="settings-help">天气查询和城市搜索共用这个 Key；保存后在下方选择城市、温度单位和查看逐日预报。</p>
         <div class="settings-actions"><button class="settings-action weather-service-save" type="button">保存天气服务</button></div>
         <p class="settings-weather-status" role="status"></p>
+        <div class="weather-settings-host"></div>
       </section>
       <section class="settings-card">
         <h2>首页壁纸</h2>
@@ -126,9 +127,7 @@ export async function mountSettings(root, onChange) {
         <label class="settings-row"><span>壁纸模糊</span><span class="settings-slider"><input name="wallpaperBlur" type="range" min="0" max="24"><output aria-hidden="true"></output></span></label>
       </section>
       <section class="settings-card">
-        <h2>首页小工具</h2>
-        <label class="settings-row"><span>待办事项</span><input class="settings-switch" name="tasks" type="checkbox" role="switch"></label>
-        <label class="settings-row"><span>笔记</span><input class="settings-switch" name="notes" type="checkbox" role="switch"></label>
+        <h2>内置工具</h2>
         <label class="settings-row"><span>天气</span><input class="settings-switch" name="weather" type="checkbox" role="switch"></label>
       </section>
       <p class="settings-status" role="status"></p>
@@ -146,12 +145,11 @@ export async function mountSettings(root, onChange) {
   let active = true;
   let writes = Promise.resolve();
   let editingEngine = null;
-  const switches = ["clock24", "tasks", "notes", "weather", "searchNewTab", "keepQuery", "hideCategories", "searchSuggestions"];
+  const switches = ["clock24", "weather", "searchNewTab", "keepQuery", "hideCategories", "searchSuggestions"];
   const engineForm = find(".settings-engine-form");
-  const weatherHost = find('[name="weatherApiHost"]');
   const weatherKey = find('[name="weatherApiKey"]');
   const weatherServiceStatus = find(".settings-weather-status");
-  const weatherConfigKeys = ["daybreak.weather.apiHost", "daybreak.weather.apiKey"];
+  const weatherConfigKeys = ["daybreak.weather.apiKey"];
   async function loadWeatherService() {
     try {
       let values;
@@ -159,24 +157,20 @@ export async function mountSettings(root, onChange) {
       else values = Object.fromEntries(weatherConfigKeys.map(key => {
         try { return [key, JSON.parse(localStorage.getItem(key))]; } catch { return [key, null]; }
       }));
-      weatherHost.value = typeof values[weatherConfigKeys[0]] === "string" ? values[weatherConfigKeys[0]] : "";
-      weatherKey.value = typeof values[weatherConfigKeys[1]] === "string" ? values[weatherConfigKeys[1]] : "";
-    } catch { /* Leave the fields empty when storage is unavailable. */ }
+      weatherKey.value = typeof values[weatherConfigKeys[0]] === "string" ? values[weatherConfigKeys[0]] : "";
+    } catch { /* Leave the field empty when storage is unavailable. */ }
   }
   find(".weather-service-save").addEventListener("click", async () => {
-    const host = weatherHost.value.trim(), key = weatherKey.value.trim();
+    const key = weatherKey.value.trim();
     try {
-      if (!host || !key) throw new Error("请填写 API Host 和 API Key。");
-      const url = new URL(/^https?:\/\//i.test(host) ? host : "https://" + host);
-      if (url.protocol !== "https:") throw new Error("API Host 需要使用 HTTPS 地址。");
-      const values = { [weatherConfigKeys[0]]: url.origin, [weatherConfigKeys[1]]: key };
+      if (!key) throw new Error("请填写高德 API Key。");
+      const values = { [weatherConfigKeys[0]]: key };
       if (storage) await storage.set(values);
       else {
         for (const [name, value] of Object.entries(values)) localStorage.setItem(name, JSON.stringify(value));
         window.dispatchEvent(new CustomEvent("daybreak:weather-config"));
       }
-      weatherHost.value = url.origin;
-      weatherServiceStatus.textContent = "天气服务已保存。";
+      weatherServiceStatus.textContent = "高德天气服务已保存。";
     } catch (error) {
       weatherServiceStatus.textContent = error.message || "天气服务未能保存。";
     }

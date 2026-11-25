@@ -221,6 +221,18 @@
   font-weight: 550;
   cursor: pointer;
 }
+.settings-action { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.weather-settings-host:not(:empty) { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+.settings-weather .weather-settings-host {
+  --widget-line: var(--line);
+  --widget-rule: var(--rule);
+  --widget-field: var(--field);
+  --widget-hover: var(--hover);
+  --widget-accent: var(--accent);
+  --widget-accent-text: var(--accent-text);
+  --widget-accent-soft: var(--accent-soft);
+  --widget-accent-line: var(--accent-line);
+}
 .settings-action:hover, .settings-replace:hover {
   background: var(--accent-softer);
 }

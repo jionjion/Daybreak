@@ -2,11 +2,10 @@ const CITY_KEY = "daybreak.weather.city";
 const CACHE_KEY = "daybreak.weather.forecast";
 const UNIT_KEY = "daybreak.weather.unit";
 const CITIES_KEY = "daybreak.weather.cities";
-const HOST_KEY = "daybreak.weather.apiHost";
 const API_KEY = "daybreak.weather.apiKey";
 const FRESH_FOR = 30 * 60 * 1000;
-const SOURCE = "和风天气";
-const CONFIG_HINT = "请先在「个人设置 → 天气服务」填写和风天气 API Host 和 API Key。";
+const SOURCE = "高德天气";
+const CONFIG_HINT = "请先在「个人设置 → 天气服务」填写高德 Web 服务 API Key。";
 
 async function read(key) {
   const storage = globalThis.chrome?.storage?.local;
@@ -20,14 +19,14 @@ async function write(key, value) {
   else localStorage.setItem(key, JSON.stringify(value));
 }
 
-async function request(url, controller, { headers = {}, timeoutMs = 12000 } = {}) {
+async function request(url, controller, { timeoutMs = 12000 } = {}) {
   const attempt = new AbortController();
   const abort = () => attempt.abort();
   controller.signal.throwIfAborted();
   controller.signal.addEventListener("abort", abort, { once: true });
   const timeout = setTimeout(abort, timeoutMs);
   try {
-    const response = await fetch(url, { signal: attempt.signal, headers, credentials: "omit", referrerPolicy: "no-referrer" });
+    const response = await fetch(url, { signal: attempt.signal, credentials: "omit", referrerPolicy: "no-referrer" });
     if (!response.ok) {
       const error = new Error("天气服务请求失败（HTTP " + response.status + "）");
       error.status = response.status;
@@ -40,55 +39,28 @@ async function request(url, controller, { headers = {}, timeoutMs = 12000 } = {}
   }
 }
 
-function normalizeHost(value) {
-  const raw = String(value || "").trim();
-  if (!raw) return "";
-  const url = new URL(/^https?:\/\//i.test(raw) ? raw : "https://" + raw);
-  if (url.protocol !== "https:") throw new Error("API Host 需要使用 HTTPS 地址。");
-  return url.origin;
-}
-
-// New accounts use a per-project host for every API; legacy accounts keep separate geo/weather hosts.
-function endpoints(host) {
-  const url = new URL(host);
-  const legacy = /(^|\.)qweather\.com$/i.test(url.hostname);
-  return legacy
-    ? { geo: "https://geoapi.qweather.com", weather: "https://devapi.qweather.com", legacy }
-    : { geo: url.origin, weather: url.origin, legacy };
-}
-
-function authHeaders(legacy, key) {
-  return legacy ? {} : { "X-QW-Api-Key": key };
-}
-
-function authorize(url, legacy, key) {
-  if (legacy) url.searchParams.set("key", key);
-  return url;
-}
-
 async function weatherConfig() {
-  const [host, key] = await Promise.all([read(HOST_KEY).catch(() => ""), read(API_KEY).catch(() => "")]);
-  let normalized = "";
-  try { normalized = normalizeHost(host); } catch { normalized = ""; }
-  return { host: normalized, key: typeof key === "string" ? key.trim() : "" };
+  const key = await read(API_KEY).catch(() => "");
+  return { key: typeof key === "string" ? key.trim() : "" };
 }
 
 function apiError(data) {
-  const code = String(data?.code || "");
-  if (code === "200") return null;
-  if (code === "401") return new Error("和风天气认证失败，请检查 API Key 和 API Host。");
-  if (code === "403") return new Error("和风天气套餐不含该接口，或请求次数已用尽。");
-  if (code === "404") return new Error("和风天气找不到该城市或接口地址。");
-  if (code === "429") return new Error("和风天气请求次数已用尽，请稍后再试。");
-  return new Error("和风天气返回错误代码 " + (code || "未知") + "。");
+  if (String(data?.status) === "1" || String(data?.infocode) === "10000") return null;
+  const code = String(data?.infocode || "");
+  if (["10001", "10002", "10013"].includes(code)) return new Error("高德天气认证失败，请检查 API Key。");
+  if (code === "10003") return new Error("高德天气请求次数已用尽，请稍后再试。");
+  if (code === "10004") return new Error("高德天气请求过于频繁，请稍后再试。");
+  if (["10009", "10010", "10012"].includes(code)) return new Error("高德 API Key 与当前应用不匹配，请检查 Key 类型和白名单。");
+  if (code === "20003") return new Error("高德天气没有找到该城市的数据。");
+  return new Error("高德天气返回错误代码 " + (code || "未知") + "。");
 }
 
 function errorText(error, fallback) {
   if (error?.message === "CONFIG") return CONFIG_HINT;
-  if (error?.status === 401) return "和风天气认证失败，请检查 API Key 和 API Host。";
-  if (error?.status === 403) return "和风天气套餐不含该接口，或请求次数已用尽。";
-  if (error?.status === 429) return "和风天气请求次数已用尽，请稍后再试。";
-  if (typeof error?.message === "string" && error.message.startsWith("和风天气")) return error.message;
+  if (error?.status === 401) return "高德天气认证失败，请检查 API Key。";
+  if (error?.status === 403) return "高德 API Key 没有天气查询权限，或请求次数已用尽。";
+  if (error?.status === 429) return "高德天气请求次数已用尽，请稍后再试。";
+  if (typeof error?.message === "string" && error.message.startsWith("高德")) return error.message;
   return fallback;
 }
 
@@ -97,11 +69,11 @@ function num(value) {
 }
 
 function validCity(city) {
-  return typeof city?.name === "string" && Number.isFinite(city.latitude) && Number.isFinite(city.longitude);
+  return typeof city?.name === "string" && typeof city.adcode === "string" && Boolean(city.adcode);
 }
 
 function cityId(city) {
-  return city.latitude + "," + city.longitude;
+  return city.adcode;
 }
 
 function details(city) {
@@ -109,56 +81,77 @@ function details(city) {
     value && value !== city.name && values.indexOf(value) === index).join(" · ");
 }
 
-async function searchQWeather(name, config, controller) {
-  if (!config.host || !config.key) throw new Error("CONFIG");
-  const { geo, legacy } = endpoints(config.host);
-  const url = new URL(geo + (legacy ? "/v2/city/lookup" : "/geo/v2/city/lookup"));
-  url.search = new URLSearchParams({ location: name, number: "6", lang: "zh" });
-  authorize(url, legacy, config.key);
-  const data = await request(url, controller, { headers: authHeaders(legacy, config.key) });
+async function searchAmap(name, config, controller) {
+  if (!config.key) throw new Error("CONFIG");
+  const url = new URL("https://restapi.amap.com/v3/config/district");
+  url.search = new URLSearchParams({ keywords: name, subdistrict: "0", extensions: "base", key: config.key });
+  const data = await request(url, controller);
   const failure = apiError(data);
   if (failure) throw failure;
-  return (Array.isArray(data.location) ? data.location : []).map(item => ({
-    name: String(item.name || ""),
-    latitude: num(item.lat),
-    longitude: num(item.lon),
-    admin1: item.adm1 || "",
-    country: item.country || "",
-    timezone: item.tz || "",
-    qid: item.id || "",
-  })).filter(validCity);
+  const found = new Map();
+  for (const item of Array.isArray(data.districts) ? data.districts : []) {
+    const adcode = String(item.adcode || "");
+    if (!adcode || found.has(adcode)) continue;
+    const [longitude, latitude] = String(item.center || "").split(",").map(Number);
+    const admin1 = [item.province, item.city].filter((value, index, values) =>
+      value && value !== item.name && values.indexOf(value) === index).join(" · ");
+    const record = {
+      name: item.name || adcode,
+      adcode,
+      admin1,
+      country: "中国",
+      timezone: "Asia/Shanghai",
+    };
+    if (Number.isFinite(latitude)) record.latitude = latitude;
+    if (Number.isFinite(longitude)) record.longitude = longitude;
+    found.set(adcode, record);
+  }
+  return [...found.values()].slice(0, 8);
 }
 
-async function qweatherForecast(city, config, controller) {
-  if (!config.host || !config.key) throw new Error("CONFIG");
-  const { weather, legacy } = endpoints(config.host);
-  const location = city.qid || (city.longitude + "," + city.latitude);
-  const nowUrl = new URL(weather + "/v7/weather/now");
-  nowUrl.search = new URLSearchParams({ location, lang: "zh", unit: "m" });
-  const daysUrl = new URL(weather + "/v7/weather/7d");
-  daysUrl.search = new URLSearchParams({ location, lang: "zh", unit: "m" });
-  authorize(nowUrl, legacy, config.key);
-  authorize(daysUrl, legacy, config.key);
-  const headers = authHeaders(legacy, config.key);
-  const [nowData, daysData] = await Promise.all([
-    request(nowUrl, controller, { headers }),
-    request(daysUrl, controller, { headers }),
+async function amapForecast(city, config, controller) {
+  if (!config.key) throw new Error("CONFIG");
+  const endpoint = extensions => {
+    const url = new URL("https://restapi.amap.com/v3/weather/weatherInfo");
+    url.search = new URLSearchParams({ city: city.adcode, extensions, key: config.key });
+    return url;
+  };
+  const [liveData, forecastData] = await Promise.all([
+    request(endpoint("base"), controller),
+    request(endpoint("all"), controller),
   ]);
-  const failure = apiError(nowData) || apiError(daysData);
+  const failure = apiError(liveData) || apiError(forecastData);
   if (failure) throw failure;
-  const now = nowData.now || {};
-  const daily = Array.isArray(daysData.daily) ? daysData.daily : [];
-  const today = daily[0] || {};
-  const current = num(now.temp), high = num(today.tempMax), low = num(today.tempMin);
-  if (![current, high, low].every(Number.isFinite)) throw new Error("和风天气返回的预报不完整。");
+  const live = liveData.lives?.[0] || {};
+  const forecast = forecastData.forecasts?.[0] || {};
+  const casts = Array.isArray(forecast.casts) ? forecast.casts : [];
+  const today = casts[0] || {};
+  const current = num(live.temperature);
+  const highs = casts.map(cast => num(cast.daytemp)).filter(Number.isFinite);
+  const lows = casts.map(cast => num(cast.nighttemp)).filter(Number.isFinite);
+  const high = Number.isFinite(num(today.daytemp)) ? num(today.daytemp) : Math.max(...highs);
+  const low = Number.isFinite(num(today.nighttemp)) ? num(today.nighttemp) : Math.min(...lows);
+  if (![current, high, low].every(Number.isFinite)) throw new Error("高德天气返回的数据不完整。");
+  const windDirection = String(live.winddirection || "").trim().replace(/风$/, "");
+  const windPower = String(live.windpower || "").trim();
+  const wind = windDirection && windDirection !== "无风向"
+    ? windDirection + "风" + (windPower ? " " + windPower + "级" : "")
+    : windPower ? "风力 " + windPower + "级" : "";
   return {
     city: cityId(city), fetched: Date.now(), current, high, low,
-    source: SOURCE, summary: now.text || "",
-    time: now.obsTime || nowData.updateTime || "",
-    humidity: num(now.humidity), pressure: num(now.pressure),
-    windSpeed: num(now.windSpeed), windDirection: num(now.wind360),
-    days: daily.map(day => ({ date: day.fxDate, high: num(day.tempMax), low: num(day.tempMin),
-      summary: day.textDay || day.textNight || "" })),
+    source: SOURCE, summary: live.weather || today.dayweather || "",
+    time: live.reporttime || forecast.reporttime || "",
+    humidity: num(live.humidity), pressure: NaN, wind,
+    days: casts.map(cast => {
+      const day = String(cast.dayweather || "").trim();
+      const night = String(cast.nightweather || "").trim();
+      return {
+        date: cast.date,
+        high: Math.max(num(cast.daytemp), num(cast.nighttemp)),
+        low: Math.min(num(cast.daytemp), num(cast.nighttemp)),
+        summary: day && night && day !== night ? day + "转" + night : (day || night),
+      };
+    }),
   };
 }
 
@@ -182,7 +175,7 @@ export function mountWeather(root) {
       </details>
     </div>
     <div class="weather-picker" hidden>
-      <form class="weather-form" novalidate><input type="search" autocomplete="off" aria-label="城市名称" placeholder="输入城市名或拼音" required><button type="submit">搜索</button></form>
+      <form class="weather-form" novalidate><input type="search" autocomplete="off" aria-label="城市名称" placeholder="输入城市名，例如 杭州" required><button type="submit">搜索</button></form>
       <p class="weather-prompt">选择城市，查看当地天气。</p>
       <div class="weather-saved" hidden></div>
       <p class="weather-help" role="status" hidden></p>
@@ -190,7 +183,7 @@ export function mountWeather(root) {
       <button type="button" class="weather-cancel" hidden>取消</button>
     </div>
     <p class="weather-status" role="status" hidden></p>
-    <div class="weather-credit" hidden><a class="weather-source" href="https://www.qweather.com/" target="_blank" rel="noopener noreferrer">和风天气</a></div>`;
+    <div class="weather-credit" hidden><a class="weather-source" href="https://lbs.amap.com/" target="_blank" rel="noopener noreferrer">高德开放平台</a></div>`;
 
   const get = (selector) => root.querySelector(selector);
   const overview = get(".weather-overview"), picker = get(".weather-picker"), reading = get(".weather-reading");
@@ -276,6 +269,8 @@ export function mountWeather(root) {
       const points=["北","东北","东","东南","南","西南","西","西北"];
       const direction=Number.isFinite(cached.windDirection)?points[(Math.round(cached.windDirection/45)%8+8)%8]:"";
       atmosphere.push((direction?direction+"风 ":"风速 ")+Math.round(cached.windSpeed)+" km/h");
+    } else if (cached.wind) {
+      atmosphere.push(cached.wind);
     }
     get(".weather-atmosphere").textContent = atmosphere.join(" · ");
     get(".weather-days").replaceChildren(...(cached.days || []).filter(day => Number.isFinite(day.high) && Number.isFinite(day.low)).map(day => {
@@ -298,7 +293,7 @@ export function mountWeather(root) {
     refreshButton.disabled = true;
     const config = await weatherConfig();
     if (!active || forecastRequest !== controller) return;
-    if (!config.host || !config.key) {
+    if (!config.key) {
       refreshButton.disabled = false;
       message(status, CONFIG_HINT);
       status.hidden = false;
@@ -307,7 +302,7 @@ export function mountWeather(root) {
     message(status, "正在更新天气…");
     status.hidden = !picker.hidden;
     try {
-      const forecast = await qweatherForecast(city, config, controller);
+      const forecast = await amapForecast(city, config, controller);
       if (!active || forecastRequest !== controller) return;
       cached = forecast;
       display();
@@ -359,13 +354,13 @@ export function mountWeather(root) {
     credit.hidden = true;
     const name = input.value.trim();
     if (name.length < 2) {
-      message(help, "请输入至少两个字符的城市名或拼音。");
+      message(help, "请输入至少两个字符的城市名。");
       input.focus();
       return;
     }
     const config = await weatherConfig();
     if (!active) return;
-    if (!config.host || !config.key) {
+    if (!config.key) {
       message(help, CONFIG_HINT);
       return;
     }
@@ -373,9 +368,9 @@ export function mountWeather(root) {
     searchRequest = controller;
     message(help, "正在搜索城市…");
     try {
-      const results = await searchQWeather(name, config, controller);
+      const results = await searchAmap(name, config, controller);
       if (!active || searchRequest !== controller) return;
-      message(help, results.length ? "请选择城市" : "没有找到匹配的城市，可以试试拼音或英文名。");
+      message(help, results.length ? "请选择城市" : "没有找到匹配的城市，换个城市名再试。");
       for (const record of results) {
         const option = document.createElement("button");
         const title = document.createElement("strong"), detail = document.createElement("span");
@@ -415,7 +410,7 @@ export function mountWeather(root) {
     if (!active) return;
     const config = await weatherConfig();
     if (!active) return;
-    if (!config.host || !config.key) {
+    if (!config.key) {
       if (city) { message(status, CONFIG_HINT); status.hidden = false; }
       else message(help, CONFIG_HINT);
       return;
@@ -425,7 +420,7 @@ export function mountWeather(root) {
     loadForecast();
   }
   const onStorage = (changes, area) => {
-    if (area === "local" && (HOST_KEY in changes || API_KEY in changes)) configChanged().catch(() => {});
+    if (area === "local" && API_KEY in changes) configChanged().catch(() => {});
   };
   if (globalThis.chrome?.storage?.onChanged) chrome.storage.onChanged.addListener(onStorage);
   window.addEventListener("daybreak:weather-config", configChanged);
@@ -438,7 +433,7 @@ export function mountWeather(root) {
     if (!validCity(saved)) {
       showPicker(true);
       const config = await weatherConfig();
-      if (active && (!config.host || !config.key)) message(help, CONFIG_HINT);
+      if (active && !config.key) message(help, CONFIG_HINT);
       return;
     }
     city = saved;
