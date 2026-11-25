@@ -1,0 +1,32 @@
+/*
+ * Theme tokens. Surfaces stay plain white / light gray so the accent can be
+ * any hue; --accent is overwritten from Settings (daybreak.pref.accent).
+ */
+:root {
+  color-scheme: light;
+  --ink: #242423;
+  --subtle: #6e6e69;
+  --line: #e4e4e1;
+  --rule: #ededeb;
+  --field: #fafafa;
+  --hover: #f2f2f0;
+  --ground: #f5f5f4;
+  --surface: #ffffff;
+  --danger: #b0442f;
+  --accent: #3f3f3c;
+  --accent-contrast: #ffffff;
+  --accent-text: color-mix(in srgb, var(--accent) 58%, #12120d);
+  --accent-strong: color-mix(in srgb, var(--accent) 82%, #000);
+  --accent-soft: color-mix(in srgb, var(--accent) 13%, var(--surface));
+  --accent-softer: color-mix(in srgb, var(--accent) 7%, var(--surface));
+  --accent-wash: color-mix(in srgb, var(--accent) 10%, var(--ground));
+  --accent-line: color-mix(in srgb, var(--accent) 32%, var(--line));
+  --selection: color-mix(in srgb, var(--accent) 24%, var(--surface));
+  --focus-ring: var(--accent-text);
+  --shadow: 0 12px 30px rgb(38 33 24 / .10);
+  /* Frosted glass cards over the wallpaper. */
+  --glass-surface: color-mix(in srgb, var(--surface) 66%, transparent);
+  --glass-border: rgb(255 255 255 / .55);
+  --glass-blur: blur(26px) saturate(1.4);
+  --glass-shadow: 0 14px 36px rgb(24 22 16 / .16), inset 0 1px 0 rgb(255 255 255 / .65);
+}
