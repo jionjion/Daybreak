@@ -4,6 +4,7 @@ import { mountLibrary } from "./widgets/library.js";
 import { mountFavorites } from "./widgets/favorites.js";
 import { mountWeather } from "./widgets/weather.js";
 import { mountSettings, applyWallpaper } from "./widgets/settings.js";
+import { applyTheme } from "./widgets/theme.js";
 import { mountSearch } from "./widgets/search.js";
 import { mountLayout, setupQuickStrip, setupWidgetDrawer } from "./widgets/home.js";
 import { mountDirectory } from "./widgets/directory.js";
@@ -33,6 +34,19 @@ for (const icon of document.querySelectorAll("[data-icon]")) drawIcon(icon, icon
 
 let preferences = { name: "", clock24: true, engine: "bing", theme: "lake", tasks: true, notes: true, weather: true };
 const localDate = new Intl.DateTimeFormat("zh-CN", {month:"long", day:"numeric", weekday:"long"});
+const lunarDate = new Intl.DateTimeFormat("zh-CN-u-ca-chinese", {month:"long", day:"numeric"});
+const lunarDays = ["初一","初二","初三","初四","初五","初六","初七","初八","初九","初十","十一","十二","十三","十四","十五","十六","十七","十八","十九","二十","廿一","廿二","廿三","廿四","廿五","廿六","廿七","廿八","廿九","三十"];
+let lunarCache = { key: "", text: "" };
+function lunarLabel(now) {
+  const key = now.toDateString();
+  if (lunarCache.key !== key) {
+    const parts = lunarDate.formatToParts(now);
+    const month = parts.find(part => part.type === "month")?.value || "";
+    const day = Number(parts.find(part => part.type === "day")?.value);
+    lunarCache = { key, text: month + (lunarDays[day - 1] || "") };
+  }
+  return lunarCache.text;
+}
 function showTime() {
   const now = new Date();
   const hour = now.getHours();
@@ -42,11 +56,13 @@ function showTime() {
   byId("time").dateTime = now.toISOString();
   byId("period").textContent = preferences.clock24 ? "" : hour < 12 ? "AM" : "PM";
   const date = localDate.formatToParts(now).map(part => part.type === "weekday" ? " · " + part.value : part.value).join("");
-  byId("hero-date").textContent = (preferences.name ? preferences.name + " · " : "") + date;
+  byId("hero-date").textContent = (preferences.name ? preferences.name + " · " : "") + date + " · " + lunarLabel(now);
 }
 let weatherCleanup;
 function applyPreferences(updated) {
   preferences = updated;
+  applyTheme(updated.accent);
+  document.body.dataset.wallTheme = updated.theme;
   for (const target of [byId("hero"),byId("wall-layer")]) applyWallpaper(target,updated);
   search.update(updated);
   for (const shortcut of byId("system-shortcuts").querySelectorAll("[data-module]")) {
@@ -63,6 +79,7 @@ const titles = { favorites:"网页收藏", bookmarks:"浏览器书签", history:
 let cleanupDetail;
 let settingsExtrasReady=false;
 function navigate(shouldFocus = true) {
+  if (byId("side-drawer")?.open) byId("side-drawer").close();
   const wallpaperSettings = location.hash === "#settings/wallpaper";
   const name = wallpaperSettings ? "settings" : location.hash.slice(1);
   const detail = Object.hasOwn(titles, name);
@@ -76,11 +93,7 @@ function navigate(shouldFocus = true) {
     mountWallpapers(byId("wallpaper-collections"));
     settingsExtrasReady=true;
   }
-  for (const link of document.querySelectorAll(".nav a, .settings-link")) {
-    if (link.hash === "#" + route) link.setAttribute("aria-current", "page");
-    else if (route === "directory" && link.hash === "#favorites") link.setAttribute("aria-current", "location");
-    else link.removeAttribute("aria-current");
-  }
+  markDock(route === "home" ? "home" : "");
   cleanupDetail?.();
   cleanupDetail = null;
   if (detail) {
@@ -97,12 +110,122 @@ function navigate(shouldFocus = true) {
 }
 
 const input = byId("query");
-const search = mountSearch({form:byId("search-form"),input,engineSelect:byId("engine-switch")});
+const search = mountSearch({form:byId("search-form"),input});
 const closeDrawer = setupWidgetDrawer(byId("widget-drawer"),byId("system-shortcuts"),drawIcon);
 const updateQuickStrip = setupQuickStrip(byId("quick-strip"));
 mountLayout(byId("layout-options"),values=>{
   closeDrawer();
   updateQuickStrip(values);
+});
+const dockButtons = [...document.querySelectorAll(".dock [data-panel]")];
+const sideDrawer = byId("side-drawer");
+const sideTitle = byId("side-drawer-title");
+const sideContent = byId("side-drawer-content");
+const sidePanels = {
+  favorites: ["网页收藏", root => mountFavorites(root)],
+  bookmarks: ["书签", root => mountLibrary(root, "bookmarks")],
+  history: ["历史记录", root => mountLibrary(root, "history")],
+  settings: ["个人设置", root => {
+    const layoutOptions = byId("layout-options");
+    const morePreferences = byId("more-preferences");
+    if (!settingsExtrasReady) { mountWallpapers(byId("wallpaper-collections")); settingsExtrasReady = true; }
+    const mounting = mountSettings(root, applyPreferences);
+    root.append(layoutOptions, morePreferences);
+    return () => {
+      mounting.then(cleanup => cleanup?.());
+      byId("settings-content").after(layoutOptions);
+      layoutOptions.after(morePreferences);
+    };
+  }],
+};
+let sideCleanup = null;
+let sideToken = 0;
+function markDock(name) {
+  for (const item of dockButtons) {
+    if (name && item.dataset.panel === name) item.setAttribute("aria-current", "page");
+    else item.removeAttribute("aria-current");
+  }
+}
+async function openPanel(name) {
+  if (name === "home") {
+    if (sideDrawer.open) sideDrawer.close();
+    if (location.hash && location.hash !== "#home") location.hash = "#home";
+    else window.scrollTo({top:0});
+    return;
+  }
+  const panel = sidePanels[name];
+  if (!panel) return;
+  const token = ++sideToken;
+  sideCleanup?.();
+  sideCleanup = null;
+  sideContent.replaceChildren();
+  sideTitle.textContent = panel[0];
+  markDock(name);
+  if (!sideDrawer.open) sideDrawer.showModal();
+  const cleanup = await panel[1](sideContent);
+  if (token !== sideToken) { cleanup?.(); return; }
+  sideCleanup = cleanup || null;
+}
+for (const item of dockButtons) item.addEventListener("click", () => openPanel(item.dataset.panel));
+sideDrawer.addEventListener("close", () => {
+  sideToken++;
+  const cleanup = sideCleanup;
+  sideCleanup = null;
+  cleanup?.();
+  sideContent.replaceChildren();
+  markDock("");
+});
+sideDrawer.querySelector(".drawer-close").addEventListener("click", () => sideDrawer.close());
+sideDrawer.addEventListener("click", event => {
+  if (event.target !== sideDrawer) return;
+  const rect = sideDrawer.getBoundingClientRect();
+  if (event.clientX < rect.left || event.clientY < rect.top || event.clientY > rect.bottom) sideDrawer.close();
+});
+const drawerGrip = sideDrawer.querySelector(".drawer-grip");
+const drawerWidthKey = "daybreak.ui.drawerWidth";
+function clampDrawerWidth(value) {
+  const max = Math.max(360, Math.round(window.innerWidth * 0.96));
+  return Math.round(Math.max(360, Math.min(max, Number.isFinite(value) ? value : 720)));
+}
+function applyDrawerWidth(value, persist) {
+  const width = clampDrawerWidth(value);
+  document.documentElement.style.setProperty("--drawer-width", width + "px");
+  drawerGrip.setAttribute("aria-valuenow", String(width));
+  drawerGrip.setAttribute("aria-valuemax", String(Math.round(window.innerWidth * 0.96)));
+  if (persist) { try { localStorage.setItem(drawerWidthKey, String(width)); } catch {} }
+}
+drawerGrip.setAttribute("aria-valuemin", "360");
+try {
+  const savedWidth = parseFloat(localStorage.getItem(drawerWidthKey));
+  if (Number.isFinite(savedWidth)) applyDrawerWidth(savedWidth, false);
+} catch {}
+let gripPointer = null;
+drawerGrip.addEventListener("pointerdown", event => {
+  if (event.button !== 0) return;
+  gripPointer = event.pointerId;
+  document.body.classList.add("drawer-dragging");
+  try { drawerGrip.setPointerCapture(event.pointerId); } catch {}
+  event.preventDefault();
+});
+drawerGrip.addEventListener("pointermove", event => {
+  if (gripPointer !== event.pointerId) return;
+  applyDrawerWidth(window.innerWidth - event.clientX, false);
+});
+function endGripDrag(event) {
+  if (gripPointer !== event.pointerId) return;
+  gripPointer = null;
+  document.body.classList.remove("drawer-dragging");
+  try { drawerGrip.releasePointerCapture(event.pointerId); } catch {}
+  applyDrawerWidth(parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--drawer-width")), true);
+}
+drawerGrip.addEventListener("pointerup", endGripDrag);
+drawerGrip.addEventListener("pointercancel", endGripDrag);
+drawerGrip.addEventListener("dblclick", () => applyDrawerWidth(720, true));
+drawerGrip.addEventListener("keydown", event => {
+  if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+  event.preventDefault();
+  const current = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--drawer-width"));
+  applyDrawerWidth(current + (event.key === "ArrowLeft" ? 32 : -32), true);
 });
 document.addEventListener("keydown", event => {
   if (event.key !== "/" || event.altKey || event.ctrlKey || event.metaKey || byId("home-view").hidden) return;
@@ -130,7 +253,8 @@ const settingsIndex = byId("settings-index");
 const wallpaperSection = "#settings-content .settings-themes";
 let chosenSettingsSection;
 const sections = [
-  ["个人偏好", "#settings-content [name=name]"], ["搜索", "#settings-content [name=engine]"],
+  ["个人偏好", "#settings-content [name=name]"], ["界面配色", "#settings-content .settings-palette"],
+  ["搜索", "#settings-content [name=engine]"],
   ["天气服务", "#settings-content .settings-weather"], ["首页壁纸", wallpaperSection],
   ["首页小工具", "#settings-content [name=tasks]"], ["首页布局", "#layout-options section"],
   ["链接打开方式", "#layout-options [name=linksNewTab]"], ["壁纸库", "#wallpaper-collections"]
@@ -170,7 +294,7 @@ function scheduleSettingsIndex() {
     const visible = sections.filter(entry => entry.section());
     const atEnd = window.scrollY + innerHeight >= document.documentElement.scrollHeight - 2;
     // Keep the highlighted entry in sync with the sticky header, which covers the section tops.
-    const header = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--topbar-height")) || 67;
+    const header = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--topbar-height")) || 0;
     const threshold = header + 24;
     const current = atEnd ? visible.at(-1) : visible.filter(entry => entry.section().getBoundingClientRect().top <= threshold).at(-1) || visible[0];
     if (current) markSettingsSection(current.button);

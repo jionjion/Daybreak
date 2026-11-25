@@ -71,6 +71,14 @@ export function mountTasks(root) {
   count.setAttribute("aria-live", "polite");
   header.append(title, count);
 
+  const progress = element("div", "tasks-progress");
+  progress.setAttribute("role", "progressbar");
+  progress.setAttribute("aria-label", "待办完成进度");
+  progress.setAttribute("aria-valuemin", "0");
+  progress.setAttribute("aria-valuemax", "100");
+  const progressFill = element("span", "tasks-progress-fill");
+  progress.append(progressFill);
+
   const filterBar = element("div", "tasks-filters");
   filterBar.setAttribute("role", "group");
   filterBar.setAttribute("aria-label", "筛选待办事项");
@@ -106,7 +114,7 @@ export function mountTasks(root) {
   const filterFields = element("div", "tasks-search-sort");
   filterFields.append(search, sort);
   management.append(summary, filterFields, badgeLabel, clear);
-  root.append(header, form, filterBar, list, empty, management, errorMessage);
+  root.append(header, progress, form, filterBar, list, empty, management, errorMessage);
 
   const storage = taskStorage();
   let tasks = [];
@@ -122,8 +130,11 @@ export function mountTasks(root) {
 
   function render() {
     const completedCount = tasks.filter((task) => task.done).length;
+    const percent = tasks.length ? Math.round(completedCount / tasks.length * 100) : 0;
     root.dispatchEvent(new CustomEvent("daybreak-task-count",{bubbles:true,detail:badge.checked?tasks.length-completedCount:0}));
-    count.textContent = `已完成 ${completedCount} / ${tasks.length}`;
+    count.textContent = `已完成 ${completedCount} / ${tasks.length} · ${percent}%`;
+    progress.setAttribute("aria-valuenow", String(percent));
+    progressFill.style.width = percent + "%";
     for (const button of filterBar.children) {
       button.setAttribute("aria-pressed", String(button.dataset.filter === filter));
     }

@@ -21,7 +21,7 @@
   background: var(--surface);
 }
 .wallpaper-panel select { max-width: min(220px,100%); }
-.wallpaper-panel button { color: var(--accent); font-weight: 550; cursor: pointer; }
+.wallpaper-panel button { color: var(--accent-text); font-weight: 550; cursor: pointer; }
 .wallpaper-panel button:enabled:hover { background: color-mix(in srgb,var(--accent) 6%,var(--surface)); }
 .wallpaper-panel button:disabled { cursor: default; opacity: .65; }
 .wallpaper-grid {
@@ -43,7 +43,7 @@
   text-align: left;
   color: var(--ink);
 }
-.wallpaper-panel .wallpaper-photo[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.wallpaper-panel .wallpaper-photo[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-text); }
 .wallpaper-photo > span:last-child { padding: 0 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .wallpaper-thumbnail { width: 100%; aspect-ratio: 16 / 9; display: block; border-radius: 5px; overflow: hidden; background: var(--ground); }
 .wallpaper-thumbnail img { display: block; width: 100%; height: 100%; object-fit: cover; }
@@ -74,7 +74,7 @@
 .wallpaper-credit { flex-basis: 100%; margin: 0; }
 .wallpaper-status { margin: 12px 0 0; }
 .wallpaper-status:empty, .wallpaper-panel [hidden] { display: none !important; }
-.wallpaper-panel :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wallpaper-panel :focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
 @media(max-width: 540px) {
   .wallpaper-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
   .wallpaper-toolbar { gap: 8px; }

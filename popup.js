@@ -1,4 +1,8 @@
 import { favoriteAddress, findFavorite, saveFavorite } from "./widgets/favorites.js";
+import { applyTheme } from "./widgets/theme.js";
+
+const stored = globalThis.chrome?.storage?.local;
+if (stored) stored.get("daybreak.pref.accent").then(values => applyTheme(values?.["daybreak.pref.accent"])).catch(() => {});
 
 const status = document.getElementById("popup-status");
 const title = document.getElementById("page-title");

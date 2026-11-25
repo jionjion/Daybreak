@@ -9,7 +9,7 @@ const defaults = {
 const ranges = { iconSize: [34, 104], iconRadius: [0, 52], iconOpacity: [25, 100], columns:[2,8], rows:[1,6],
   fontSize:[10,22],searchWidth:[285,900],searchRadius:[0,32],searchOpacity:[35,100],homeScale:[75,130],sideScale:[75,130] };
 const modes = { dashboard:"工作台", classic:"经典图标", minimal:"极简" };
-const selections = {mode:modes,fontFace:{system:"系统字体",serif:"衬线",mono:"等宽"},labelColor:{auto:"跟随主题",light:"米白",dark:"墨绿",gold:"琥珀"}};
+const selections = {mode:modes,fontFace:{system:"系统字体",serif:"衬线",mono:"等宽"},labelColor:{auto:"跟随主题",light:"米白",dark:"深色",gold:"琥珀"}};
 const keys = Object.keys(defaults).map(key => prefix + key);
 const storage = globalThis.chrome?.storage;
 
@@ -65,14 +65,14 @@ export function mountLayout(root, apply) {
     style.setProperty("--daybreak-icon-label-display",values.labels ? "block" : "none");
     style.setProperty("--daybreak-icon-columns",String(values.columns));
     for(const [variable,value] of Object.entries({
-      "--icon-shadow":values.iconShadow?"0 3px 10px #15261855":"none",
-      "--label-shadow":values.textShadow?"0 1px 4px #15221899":"none",
+      "--icon-shadow":values.iconShadow?"0 3px 10px rgb(28 24 16 / .34)":"none",
+      "--label-shadow":values.textShadow?"0 1px 4px rgb(24 20 14 / .6)":"none",
       "--label-size":values.fontSize+"px","--label-font":{system:"inherit",serif:"Georgia, SimSun, serif",mono:"Consolas, monospace"}[values.fontFace],
       "--search-width":values.searchWidth+"px","--search-radius":values.searchRadius+"px","--search-alpha":values.searchOpacity/100,
-      "--search-shadow":values.searchShadow?"0 2px 10px #12231835":"none","--home-zoom":values.homeScale/100,"--side-zoom":values.sideScale/100
+      "--search-shadow":values.searchShadow?"0 2px 10px rgb(30 26 18 / .21)":"none","--home-zoom":values.homeScale/100,"--side-zoom":values.sideScale/100
     }))style.setProperty(variable,String(value));
     if(values.labelColor==="auto")style.removeProperty("--label-color");
-    else style.setProperty("--label-color",{dark:"#234b39",light:"#fffdf1",gold:"#e7bf6c"}[values.labelColor]);
+    else style.setProperty("--label-color",{dark:"var(--accent-text)",light:"#fffdf1",gold:"#e7bf6c"}[values.labelColor]);
     const pageSize = Math.round(values.rows)*Math.round(values.columns);
     if(document.documentElement.dataset.iconsPerPage!==String(pageSize)){
       document.documentElement.dataset.iconsPerPage=String(pageSize);

@@ -1,11 +1,12 @@
 import { customList, enginesFor, setEngineOptions, savePrefs, validTemplate } from "./search.js";
 import { disableBing } from "./wallpapers.js";
+import { ACCENT_PRESETS, DEFAULT_ACCENT, applyTheme, isAccent } from "./theme.js";
 
 const prefix = "daybreak.pref.";
 const defaults = {
   name: "", engine: "bing", clock24: true, theme: "lake", customImage: "",
   customEngines: [], searchNewTab: false, keepQuery: false, hideCategories: false, searchSuggestions: false,
-  wallpaperMask: 24, wallpaperBlur: 0, wallpaperFit: "cover", wallpaperColor: "#244c39",
+  wallpaperMask: 24, wallpaperBlur: 0, wallpaperFit: "cover", wallpaperColor: "#244c39", accent: DEFAULT_ACCENT,
   tasks: true, notes: true, weather: true,
 };
 const themes = { lake: "湖光", pine: "松林", paper: "米纸", color: "纯色", custom: "自选图片" };
@@ -30,6 +31,8 @@ async function readPreferences() {
   prefs.wallpaperBlur = normalizeRange(prefs.wallpaperBlur, 24, defaults.wallpaperBlur);
   if (!["cover", "contain", "auto"].includes(prefs.wallpaperFit)) prefs.wallpaperFit = "cover";
   if (!/^#[0-9a-f]{6}$/i.test(prefs.wallpaperColor)) prefs.wallpaperColor = defaults.wallpaperColor;
+  if (isAccent(prefs.accent)) prefs.accent = prefs.accent.toLowerCase();
+  else prefs.accent = defaults.accent;
   if (!Object.hasOwn(themes, prefs.theme)) prefs.theme = defaults.theme;
   if (!/^data:image\/(webp|png|jpeg);base64,[A-Za-z0-9+/]+=*$/.test(prefs.customImage)) prefs.customImage = "";
   if (prefs.theme === "custom" && !prefs.customImage) prefs.theme = defaults.theme;
@@ -70,15 +73,22 @@ async function encodeWallpaper(file) {
 }
 
 export async function mountSettings(root, onChange) {
+  const nameId = "settings-name-" + Math.random().toString(36).slice(2, 8);
   root.innerHTML = `
     <div class="settings-panel">
       <section class="settings-card">
         <h2>个人偏好</h2>
         <form class="settings-row settings-name-form">
-          <label for="settings-name">问候称呼</label>
-          <input id="settings-name" name="name" class="settings-field" type="text" maxlength="40" placeholder="你的名字" autocomplete="off">
+          <label for="${nameId}">问候称呼</label>
+          <input id="${nameId}" name="name" class="settings-field" type="text" maxlength="40" placeholder="你的名字" autocomplete="off">
         </form>
         <label class="settings-row"><span>24 小时制</span><input class="settings-switch" name="clock24" type="checkbox" role="switch"></label>
+      </section>
+      <section class="settings-card">
+        <h2>界面配色</h2>
+        <p class="settings-help">主题色用于按钮、链接、选中状态和焦点样式，其余界面保持中性的白色与浅灰色。</p>
+        <div class="settings-palette" role="group" aria-label="主题色"></div>
+        <label class="settings-row"><span>自定义主题色</span><input name="accent" type="color" aria-label="自定义主题色"></label>
       </section>
       <section class="settings-card">
         <h2>搜索</h2>
@@ -127,6 +137,7 @@ export async function mountSettings(root, onChange) {
   const find = selector => root.querySelector(selector);
   const status = find(".settings-status");
   const tray = find(".settings-themes");
+  const palette = find(".settings-palette");
   const upload = find(".settings-upload");
   const replace = find(".settings-replace");
   let current;
@@ -244,6 +255,27 @@ export async function mountSettings(root, onChange) {
     } catch { error.textContent = "无法保存修改，请重新打开编辑。"; error.hidden = false; }
   });
 
+  for (const [label, hex] of ACCENT_PRESETS) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "settings-palette-chip";
+    button.dataset.accent = hex;
+    button.style.setProperty("--swatch", hex);
+    button.title = label;
+    button.setAttribute("aria-label", label);
+    button.setAttribute("aria-pressed", "false");
+    const dot = document.createElement("span");
+    dot.className = "settings-palette-dot";
+    dot.setAttribute("aria-hidden", "true");
+    const caption = document.createElement("span");
+    caption.textContent = label;
+    button.append(dot, caption);
+    button.addEventListener("click", () => {
+      applyTheme(hex);
+      save({ accent: hex });
+    });
+    palette.append(button);
+  }
   for (const [key, label] of Object.entries(themes)) {
     const button = document.createElement("button");
     button.className = "settings-theme";
@@ -272,6 +304,8 @@ export async function mountSettings(root, onChange) {
     }
     for (const key of switches) field(key).checked = prefs[key];
     for (const key of ["wallpaperColor","wallpaperFit","wallpaperMask","wallpaperBlur"]) field(key).value = prefs[key];
+    field("accent").value = prefs.accent;
+    for (const button of palette.children) button.setAttribute("aria-pressed", String(button.dataset.accent === prefs.accent));
     for (const key of ["wallpaperMask","wallpaperBlur"]) field(key).nextElementSibling.value = prefs[key] + (key === "wallpaperBlur" ? " px" : "%");
     find('[data-theme="color"] .settings-swatch').style.backgroundColor = prefs.wallpaperColor;
     for (const button of tray.children) button.setAttribute("aria-pressed", String(prefs.theme === button.dataset.theme));
@@ -321,6 +355,8 @@ export async function mountSettings(root, onChange) {
     field(key).addEventListener("change", () => save({ [key]: field(key).checked }));
   }
   field("wallpaperColor").addEventListener("change", () => { disableBing(); save({ wallpaperColor: field("wallpaperColor").value, theme: "color" }); });
+  field("accent").addEventListener("input", () => applyTheme(field("accent").value));
+  field("accent").addEventListener("change", () => save({ accent: field("accent").value }));
   field("wallpaperFit").addEventListener("change", () => save({ wallpaperFit: field("wallpaperFit").value }));
   for (const key of ["wallpaperMask","wallpaperBlur"]) {
     field(key).addEventListener("input", () => {

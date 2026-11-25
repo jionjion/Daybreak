@@ -1,10 +1,10 @@
 .library-panel {
-  --library-ink: var(--ink, #263d35);
-  --library-muted: var(--subtle, #596c62);
-  --library-line: var(--line, #dce2d9);
+  --library-ink: var(--ink, #242423);
+  --library-muted: var(--subtle, #6e6e69);
+  --library-line: var(--line, #e4e4e1);
   padding: clamp(16px, 2.5vw, 28px);
   color: var(--library-ink);
-  background: var(--surface, #fffefa);
+  background: var(--surface, #ffffff);
   border: 1px solid var(--library-line);
   border-radius: 16px;
 }
@@ -25,12 +25,12 @@
   gap: 14px;
   max-width: 440px;
   padding: 0 15px;
-  background: var(--surface, #fffefa);
-  border: 1px solid #d9e0d6;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line);
   border-radius: 9px;
 }
 .library-search:focus-within {
-  outline: 2px solid #53806c;
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 .library-glass {
@@ -88,13 +88,13 @@
   gap: 12px;
   min-height: 60px;
   padding: 8px 0;
-  border-bottom: 1px solid #e9ece5;
+  border-bottom: 1px solid var(--rule);
   color: inherit;
   text-decoration: none;
 }
-.library-entry:hover, .library-row:focus-visible { background: #f2f5ee; }
+.library-entry:hover, .library-row:focus-visible { background: var(--hover); }
 .library-row:focus-visible, .library-more:focus-visible {
-  outline: 2px solid #53806c;
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 .library-mark {
@@ -103,8 +103,8 @@
   flex: 0 0 32px;
   height: 32px;
   border-radius: 9px;
-  background: #e7efe5;
-  color: #38674f;
+  background: var(--accent-soft);
+  color: var(--accent-text);
   font-family: Georgia, serif;
   font-size: 18px;
 }
@@ -131,10 +131,10 @@
   display: block;
   margin: 20px auto 0;
   padding: 8px 18px;
-  border: 1px solid #d3ddd2;
+  border: 1px solid var(--line);
   border-radius: 9px;
-  background: #f3f6f0;
-  color: #345c46;
+  background: var(--field);
+  color: var(--accent-text);
   cursor: pointer;
   font: inherit;
   font-size: 13px;
@@ -149,23 +149,23 @@
 }
 .library-folder-bar[hidden], .library-folder-bar [hidden] { display: none; }
 .library-folder-bar select { max-width: min(100%, 280px); }
-.library-entry { display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #e9ece5; }
+.library-entry { display: flex; align-items: center; gap: 4px; border-bottom: 1px solid var(--rule); }
 .library-entry .library-row { flex: 1; min-width: 0; border: 0; }
 .library-field, .library-button, .library-primary, .library-danger {
   box-sizing: border-box;
   min-height: 36px;
   padding: 7px 10px;
-  border: 1px solid #d8dfd3;
+  border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--library-ink);
-  background: var(--surface, #fffefa);
+  background: var(--surface, #ffffff);
   font: inherit;
   font-size: 13px;
 }
 .library-button, .library-primary, .library-danger, .library-text-button { cursor: pointer; }
-.library-primary { background: #31654d; border-color: #31654d; color: white; }
-.library-danger { background: #86433c; border-color: #86433c; color: white; }
-.library-button:hover, .library-text-button:hover { background: #edf2e9; }
+.library-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
+.library-danger { background: var(--danger); border-color: var(--danger); color: #ffffff; }
+.library-button:hover, .library-text-button:hover { background: var(--hover); }
 .library-text-button {
   flex-shrink: 0;
   padding: 5px;
@@ -177,7 +177,7 @@
   font-size: 12px;
 }
 .library-field:focus-visible, .library-panel button:focus-visible, .library-dialog button:focus-visible {
-  outline: 2px solid #53806c;
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 .library-feedback, .library-confirm-url, .library-confirm-message, .library-error {
@@ -192,19 +192,19 @@
   width: min(410px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
   padding: 24px;
-  border: 1px solid #d8dfd3;
+  border: 1px solid var(--line);
   border-radius: 18px;
-  background: var(--surface, #fffefa);
+  background: var(--surface, #ffffff);
   color: var(--library-ink);
-  box-shadow: 0 15px 70px #102c2029;
+  box-shadow: 0 15px 70px rgb(30 28 20 / .16);
 }
-.library-dialog::backdrop { background: rgb(26 40 31 / 38%); }
+.library-dialog::backdrop { background: rgb(30 28 20 / 38%); }
 .library-form, .library-fields { display: grid; gap: 13px; min-width: 0; margin: 0; }
 .library-dialog-title { margin: 0; font-size: 20px; }
 .library-label { display: grid; min-width: 0; gap: 5px; color: var(--library-ink); font-size: 13px; }
 .library-label .library-field { width: 100%; }
 .library-confirm-title, .library-confirm-url { overflow-wrap: anywhere; }
-.library-error { color: #86433c; }
+.library-error { color: var(--danger); }
 .library-error:empty { display: none; }
 .library-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 .library-dialog button:disabled, .library-folder-bar button:disabled { opacity: .55; cursor: default; }

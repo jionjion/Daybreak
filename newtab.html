@@ -7,6 +7,7 @@
   <title>Daybreak 晨屿</title>
   <link rel="icon" href="assets/icon32.png">
   <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="theme.css">
   <link rel="stylesheet" href="widgets/favorites.css">
   <link rel="stylesheet" href="widgets/library.css">
   <link rel="stylesheet" href="widgets/weather.css">
@@ -20,18 +21,6 @@
 <body>
   <div id="wall-layer" class="wall-layer" aria-hidden="true"></div>
   <a class="skip" href="#main">跳到主要内容</a>
-  <header class="topbar">
-    <div class="frame topbar-inner">
-      <a class="brand" href="#home" aria-label="Daybreak 晨屿首页"><img src="assets/icon48.png" width="37" height="37" alt=""><span>Daybreak</span><b>晨屿</b></a>
-      <nav class="nav" aria-label="主导航">
-        <a href="#home" aria-current="page"><i data-icon="home"></i>今日</a>
-        <a href="#favorites"><i data-icon="star"></i>收藏</a>
-        <a href="#bookmarks"><i data-icon="bookmark"></i>书签</a>
-        <a href="#history"><i data-icon="history"></i>历史记录</a>
-      </nav>
-      <a href="#settings" class="settings-link" aria-label="个人设置"><i data-icon="settings"></i><span>个人设置</span></a>
-    </div>
-  </header>
   <main id="main" class="frame main" tabindex="-1">
     <section id="home-view" aria-label="今日">
       <nav id="quick-strip" aria-label="浏览器快捷栏" hidden></nav>
@@ -40,11 +29,8 @@
           <p class="hero-date" id="hero-date"></p>
           <h1 class="time" aria-label="当前时间"><time id="time"></time><span id="period"></span></h1>
           <div class="search-block">
-            <div class="search-toolbar">
-              <select id="engine-switch" aria-label="搜索引擎"></select>
-            </div>
             <form id="search-form" class="search-form" role="search" novalidate>
-              <i id="search-icon" data-icon="search"></i>
+              <button id="engine-button" class="engine-button" type="button" aria-label="切换搜索引擎" aria-haspopup="true" aria-expanded="false" title="切换搜索引擎"></button>
               <input id="query" type="text" autocomplete="off" placeholder="搜索或输入网址" aria-label="搜索或输入网址" required>
               <kbd aria-hidden="true">/</kbd>
               <button id="search-submit" type="submit" aria-label="开始搜索"><i data-icon="arrow"></i></button>
@@ -80,6 +66,21 @@
       <div id="more-preferences" class="settings-panel"><section id="wallpaper-collections" class="settings-card"></section></div>
     </section>
   </main>
+  <nav class="dock" aria-label="主导航">
+    <button type="button" data-panel="home"><i data-icon="home"></i>今日</button>
+    <button type="button" data-panel="favorites" aria-haspopup="dialog"><i data-icon="star"></i>收藏</button>
+    <button type="button" data-panel="bookmarks" aria-haspopup="dialog"><i data-icon="bookmark"></i>书签</button>
+    <button type="button" data-panel="history" aria-haspopup="dialog"><i data-icon="history"></i>历史</button>
+    <button type="button" data-panel="settings" aria-haspopup="dialog" aria-label="个人设置"><i data-icon="settings"></i>设置</button>
+  </nav>
+  <dialog id="side-drawer" aria-label="侧边面板">
+    <div class="drawer-grip" role="separator" aria-orientation="vertical" aria-label="拖动调整侧边栏宽度" tabindex="0"></div>
+    <header class="drawer-head">
+      <h2 id="side-drawer-title"></h2>
+      <button type="button" class="drawer-close" aria-label="关闭侧边面板">关闭</button>
+    </header>
+    <div id="side-drawer-content"></div>
+  </dialog>
   <dialog id="widget-drawer" aria-label="首页小工具"><button type="button" class="drawer-close" aria-label="关闭小工具">关闭</button><div id="drawer-content"></div></dialog>
 </body>
 </html>

@@ -2,20 +2,24 @@ const catalog = [
   ["bing", "必应 Bing", "https://www.bing.com/search?q=%s"],
   ["google", "Google", "https://www.google.com/search?q=%s"],
   ["baidu", "百度", "https://www.baidu.com/s?wd=%s"],
-  ["duckduckgo", "DuckDuckGo", "https://duckduckgo.com/?q=%s"],
-  ["yahoo", "Yahoo", "https://search.yahoo.com/search?p=%s"],
   ["sogou", "搜狗", "https://www.sogou.com/web?query=%s"],
   ["360", "360 搜索", "https://www.so.com/s?q=%s"],
 ].map(([id, name, template]) => ({ id, name, template }));
-const builtinIds = new Set([...catalog.map(item => item.id), "browser"]);
+const builtinIds = new Set(catalog.map(item => item.id));
+const engineIcons = {
+  bing: "assets/engines/bing.ico",
+  google: "assets/engines/google.svg",
+  baidu: "assets/engines/baidu.ico",
+  sogou: "assets/engines/sogou.ico",
+  "360": "assets/engines/360.png",
+};
+const defaultEngineIcon = "assets/engines/default.svg";
 const prefKey = "daybreak.pref.";
 const categories = { web:"网页", images:"图片", news:"新闻", videos:"视频", maps:"地图" };
 const specialized = {
   bing: { images:"https://www.bing.com/images/search?q=%s", news:"https://www.bing.com/news/search?q=%s", videos:"https://www.bing.com/videos/search?q=%s", maps:"https://www.bing.com/maps?q=%s" },
   google: { images:"https://www.google.com/search?tbm=isch&q=%s", news:"https://www.google.com/search?tbm=nws&q=%s", videos:"https://www.google.com/search?tbm=vid&q=%s", maps:"https://www.google.com/maps/search/?api=1&query=%s" },
   baidu: { images:"https://image.baidu.com/search/index?tn=baiduimage&word=%s", news:"https://www.baidu.com/s?tn=news&word=%s", videos:"https://www.baidu.com/sf/vsearch?pd=video&wd=%s", maps:"https://map.baidu.com/search/%s" },
-  duckduckgo: { images:"https://duckduckgo.com/?iax=images&ia=images&q=%s", news:"https://duckduckgo.com/?iar=news&ia=news&q=%s", videos:"https://duckduckgo.com/?iax=videos&ia=videos&q=%s", maps:"https://duckduckgo.com/?iaxm=maps&ia=maps&q=%s" },
-  yahoo: { images:"https://images.search.yahoo.com/search/images?p=%s", news:"https://news.search.yahoo.com/search?p=%s", videos:"https://video.search.yahoo.com/search/video?p=%s" },
   sogou: { images:"https://pic.sogou.com/pics?query=%s", news:"https://news.sogou.com/news?query=%s", videos:"https://v.sogou.com/v?query=%s" },
   "360": { images:"https://image.so.com/i?q=%s", news:"https://news.so.com/ns?q=%s", videos:"https://video.360kan.com/v?q=%s" },
 };
@@ -43,8 +47,7 @@ export function customList(value) {
 }
 
 export function enginesFor(prefs) {
-  const browser = globalThis.chrome?.search?.query ? [{ id: "browser", name: "浏览器默认", template: "" }] : [];
-  return [...browser, ...catalog, ...customList(prefs.customEngines)];
+  return [...catalog, ...customList(prefs.customEngines)];
 }
 
 export function addressFor(query) {
@@ -187,7 +190,7 @@ function suggestionsFor(form, input, enabled, options) {
   return { close, composing:()=>composing, destroy(){close();box.remove();} };
 }
 
-export function mountSearch({ form, input, engineSelect }) {
+export function mountSearch({ form, input }) {
   const listeners = new AbortController();
   const options = { signal: listeners.signal };
   let prefs = { engine: "bing", customEngines: [], searchNewTab: false, keepQuery: false };
@@ -211,6 +214,84 @@ export function mountSearch({ form, input, engineSelect }) {
     bar.append(button);
     categoryButtons.set(key, button);
   }
+  const engineButton = form.querySelector("#engine-button");
+  const engineMenu = document.createElement("div");
+  engineMenu.className = "engine-menu";
+  engineMenu.id = "engine-menu";
+  engineMenu.hidden = true;
+  engineMenu.setAttribute("role", "menu");
+  engineMenu.setAttribute("aria-label", "搜索引擎");
+  form.append(engineMenu);
+  engineButton?.setAttribute("aria-controls", engineMenu.id);
+  function engineIcon(engine) {
+    const icon = document.createElement("span");
+    icon.className = "engine-icon";
+    const img = new Image();
+    img.alt = "";
+    let host = "";
+    if (engine.template) {
+      try { host = new URL(engine.template.replaceAll("%s", "example")).hostname; } catch {}
+    }
+    const bundled = engineIcons[engine.id];
+    let done = false;
+    const fallback = () => {
+      if (done || img.src.endsWith(defaultEngineIcon)) return;
+      done = true;
+      img.src = defaultEngineIcon;
+    };
+    img.addEventListener("load", () => { done = true; }, { once: true });
+    img.addEventListener("error", fallback, { once: true });
+    if (!bundled) setTimeout(fallback, 2500);
+    img.src = bundled || (host ? "https://" + host + "/favicon.ico" : defaultEngineIcon);
+    icon.append(img);
+    return icon;
+  }
+  function setMenu(open) {
+    engineMenu.hidden = !open;
+    engineButton?.setAttribute("aria-expanded", String(open));
+  }
+  function renderEngine() {
+    const engine = currentEngine();
+    if (engineButton) {
+      const label = "切换搜索引擎（当前：" + engine.name + "）";
+      engineButton.replaceChildren(engineIcon(engine));
+      engineButton.title = label;
+      engineButton.setAttribute("aria-label", label);
+    }
+    engineMenu.replaceChildren(...enginesFor(prefs).map(item => {
+      const option = document.createElement("button");
+      option.type = "button";
+      option.className = "engine-option";
+      option.setAttribute("role", "menuitemradio");
+      option.setAttribute("aria-checked", String(item.id === engine.id));
+      option.setAttribute("aria-label", item.name);
+      option.title = item.name;
+      option.append(engineIcon(item));
+      option.addEventListener("click", () => chooseEngine(item.id), options);
+      return option;
+    }));
+  }
+  async function chooseEngine(id) {
+    setMenu(false);
+    if (id === prefs.engine) { input.focus(); return; }
+    const old = prefs.engine;
+    prefs = { ...prefs, engine: id };
+    renderEngine();
+    showMode(false);
+    try { await savePrefs({ engine: id }); }
+    catch { prefs = { ...prefs, engine: old }; renderEngine(); showMode(false); }
+    input.focus();
+  }
+  engineButton?.addEventListener("click", () => { suggestions.close(); setMenu(engineMenu.hidden); }, options);
+  document.addEventListener("pointerdown", event => {
+    if (engineMenu.hidden || engineMenu.contains(event.target) || engineButton?.contains(event.target)) return;
+    setMenu(false);
+  }, options);
+  document.addEventListener("keydown", event => {
+    if (event.key !== "Escape" || engineMenu.hidden) return;
+    setMenu(false);
+    input.focus();
+  }, options);
   function currentEngine() {
     return enginesFor(prefs).find(item => item.id === prefs.engine) || catalog[0];
   }
@@ -228,38 +309,26 @@ export function mountSearch({ form, input, engineSelect }) {
     input.setAttribute("aria-label", input.placeholder);
     if (focus) input.focus();
   }
-  engineSelect?.addEventListener("change", async () => {
-    const old = prefs.engine;
-    const engine = engineSelect.value;
-    prefs = { ...prefs, engine };
-    showMode(false);
-    try { await savePrefs({ engine }); }
-    catch { prefs = { ...prefs, engine: old }; engineSelect.value = old; showMode(false); }
-    input.focus();
-  }, options);
   form.addEventListener("submit", event => {
     event.preventDefault();
     if (suggestions.composing()) return;
     suggestions.close();
+    setMenu(false);
     const query = input.value.trim();
     if (!query) { input.focus(); return; }
     const engine = currentEngine();
     const direct = category === "web" ? addressFor(query) : null;
-    if (!direct && engine.id === "browser") {
-      chrome.search.query({ text: query, disposition: prefs.searchNewTab ? "NEW_TAB" : "CURRENT_TAB" });
-    } else {
-      const template = (specialized[engine.id] || engine.types)?.[category] || engine.template;
-      const url = direct || template.replaceAll("%s", () => encodeURIComponent(query));
-      if (prefs.searchNewTab) window.open(url, "_blank", "noopener,noreferrer");
-      else location.assign(url);
-    }
+    const template = (specialized[engine.id] || engine.types)?.[category] || engine.template;
+    const url = direct || template.replaceAll("%s", () => encodeURIComponent(query));
+    if (prefs.searchNewTab) window.open(url, "_blank", "noopener,noreferrer");
+    else location.assign(url);
     if (!prefs.keepQuery) input.value = "";
   }, options);
   function update(next) {
     prefs = { ...prefs, ...next };
-    if (engineSelect) setEngineOptions(engineSelect, enginesFor(prefs), prefs.engine);
+    renderEngine();
     showMode(false);
   }
   update(prefs);
-  return { update, destroy() { listeners.abort(); suggestions.destroy(); if (!existing) bar.remove(); else bar.replaceChildren(); } };
+  return { update, destroy() { listeners.abort(); suggestions.destroy(); engineMenu.remove(); if (!existing) bar.remove(); else bar.replaceChildren(); } };
 }
