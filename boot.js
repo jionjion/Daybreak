@@ -4,7 +4,10 @@
 (() => {
   const body = document.body;
   const hash = location.hash;
-  body.dataset.route = hash.startsWith("#settings") ? "settings" : hash === "#bookmarks" ? "detail" : "home";
+  // Settings is a drawer over the home view, so the home route (and its
+  // wallpaper) paints first and the drawer slides in on top.
+  body.dataset.route = hash === "#bookmarks" ? "detail" : "home";
+  body.dataset.settingsOpen = String(hash.startsWith("#settings"));
   let boot = null;
   try { boot = JSON.parse(localStorage.getItem("daybreak.boot") || "null"); } catch {}
   if (!boot || typeof boot !== "object") return;

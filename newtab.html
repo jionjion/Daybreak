@@ -51,12 +51,23 @@
       <div class="page-head"><div class="page-crumb"><a href="#home"><i data-icon="left"></i>返回今日</a></div><h1 id="detail-title"></h1></div>
       <div id="detail-content"></div>
     </section>
-    <section id="settings-view" aria-labelledby="settings-title" hidden>
-      <div class="page-head"><div class="page-crumb"><a href="#home"><i data-icon="left"></i>返回今日</a></div><h1 id="settings-title">个人设置</h1></div>
-      <nav id="settings-index" aria-label="设置分类"></nav>
-      <div id="settings-content"></div>
-      <div id="layout-options" class="settings-panel"></div>
-      <div id="more-preferences" class="settings-panel"><section id="wallpaper-collections" class="settings-card"></section></div>
+    <div id="settings-scrim" class="settings-scrim" aria-hidden="true"></div>
+    <section id="settings-view" class="settings-drawer" role="dialog" aria-modal="true" aria-labelledby="settings-title" tabindex="-1">
+      <div class="settings-drawer-top">
+        <header class="settings-drawer-head">
+          <div>
+            <p class="settings-drawer-kicker">Daybreak</p>
+            <h1 id="settings-title">个人设置</h1>
+          </div>
+          <button id="settings-close" class="settings-drawer-close" type="button" aria-label="关闭设置" title="关闭设置"><i data-icon="close"></i></button>
+        </header>
+        <nav id="settings-index" aria-label="设置分类"></nav>
+      </div>
+      <div id="settings-scroll" class="settings-drawer-body">
+        <div id="settings-content"></div>
+        <div id="layout-options" class="settings-panel"></div>
+        <div id="more-preferences" class="settings-panel"><section id="wallpaper-collections" class="settings-card"></section></div>
+      </div>
     </section>
   </main>
 </body>

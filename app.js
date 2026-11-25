@@ -11,6 +11,7 @@ const byId = id => document.getElementById(id);
 const drawings = {
   rotate: '<path d="M4 10a8 8 0 1 1 1.5 7M4 4v6h6"/>',
   left: '<path d="M20 12H5m6-6-6 6 6 6"/>',
+  close: '<path d="M6 6l12 12M18 6 6 18"/>',
   bookmark: '<path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5v16l-6-4-6 4z"/>',
   settings: '<path d="M4 7h6m5 0h5M4 17h3m5 0h8"/><circle cx="12.5" cy="7" r="2.5"/><circle cx="9.5" cy="17" r="2.5"/>',
   image: '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.3" cy="9" r="1.4"/><path d="m7 20 8-9 6 6"/>',
@@ -70,6 +71,8 @@ function applyPreferences(updated) {
 }
 
 const titles = { bookmarks:"浏览器书签" };
+const settingsScroll = byId("settings-scroll");
+let settingsOpener = null;
 let cleanupDetail;
 let settingsExtrasReady=false;
 function navigate(shouldFocus = true) {
@@ -78,12 +81,24 @@ function navigate(shouldFocus = true) {
   const name = wallpaperSettings || weatherSettings ? "settings" : location.hash.slice(1);
   const detail = Object.hasOwn(titles, name);
   const route = detail || name === "settings" ? name : "home";
-  document.body.dataset.route=route;
+  const wasOpen = document.body.dataset.settingsOpen === "true";
+  const open = route === "settings";
+  if (open && !wasOpen) {
+    const active = document.activeElement;
+    settingsOpener = active instanceof HTMLElement && active !== document.body ? active : null;
+    settingsScroll.scrollTop = 0;
+    byId("settings-view").dataset.scrolled = "false";
+  }
+  // Keep the home route under the drawer so the wallpaper, glass and layout
+  // stay exactly as they are while settings slides over them.
+  document.body.dataset.route = open ? "home" : route;
+  document.body.dataset.settingsOpen = String(open);
   if (route === "home") homeWeather?.sync();
-  byId("home-view").hidden = route !== "home";
+  byId("home-view").hidden = detail;
   byId("detail-view").hidden = !detail;
-  byId("settings-view").hidden = route !== "settings";
-  if(route==="settings" && !settingsExtrasReady){
+  byId("home-view").inert = open || detail;
+  document.querySelector(".wall-actions").inert = open;
+  if(open && !settingsExtrasReady){
     mountWallpapers(byId("wallpaper-collections"));
     settingsExtrasReady=true;
   }
@@ -95,10 +110,20 @@ function navigate(shouldFocus = true) {
     cleanupDetail=mountLibrary(root);
   }
   document.title = route === "home" ? "Daybreak 晨屿" : (titles[route] || "个人设置") + " · 晨屿";
-  if (shouldFocus) { window.scrollTo(0, 0); byId("main").focus({preventScroll:true}); }
+  if (shouldFocus) {
+    if (open) {
+      byId("settings-close").focus({preventScroll:true});
+    } else {
+      window.scrollTo(0, 0);
+      // Return focus to whatever opened the drawer, not the page root.
+      const back = wasOpen && settingsOpener?.isConnected ? settingsOpener : byId("main");
+      back.focus({preventScroll:true});
+      if (wasOpen) settingsOpener = null;
+    }
+  }
   if (wallpaperSettings) sections.find(entry => entry.selector === wallpaperSection)?.button.click();
   if (weatherSettings) sections.find(entry => entry.selector === "#settings-content .settings-weather")?.button.click();
-  if (route === "settings") scheduleSettingsIndex();
+  if (open) scheduleSettingsIndex();
 }
 
 const input = byId("query");
@@ -144,52 +169,88 @@ const sections = [
     if (!target) return;
     target.tabIndex = -1;
     target.scrollIntoView({block:"start"});
-    target.focus({preventScroll:true});
-    chosenSettingsSection = {button, y:window.scrollY};
+    // Move context without painting a focus box for pointer-driven jumps.
+    target.focus({preventScroll:true, focusVisible:false});
+    chosenSettingsSection = {button, y:settingsScroll.scrollTop};
     markSettingsSection(button);
   });
   settingsIndex.append(button);
   return {button, section, selector};
 });
+let markedSettingsSection;
 function markSettingsSection(current) {
   for (const {button} of sections) {
     if (button === current) button.setAttribute("aria-current","location");
     else button.removeAttribute("aria-current");
   }
+  if (current === markedSettingsSection) return;
+  markedSettingsSection = current;
+  // Keep the active pill visible in the horizontally scrolling index.
+  const nav = settingsIndex.getBoundingClientRect();
+  const rect = current.getBoundingClientRect();
+  if (rect.left >= nav.left && rect.right <= nav.right - 8) return;
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  settingsIndex.scrollTo({left:settingsIndex.scrollLeft + rect.left - nav.left - 12, behavior:reduce ? "auto" : "smooth"});
 }
 let settingsFrame = 0;
 function scheduleSettingsIndex() {
-  if (settingsFrame || byId("settings-view").hidden) return;
+  if (settingsFrame || document.body.dataset.settingsOpen !== "true") return;
   settingsFrame = requestAnimationFrame(() => {
     settingsFrame = 0;
+    if (document.body.dataset.settingsOpen !== "true") return;
     const rects = sections.map(entry => [entry, entry.section()?.getBoundingClientRect()]).filter(([, rect]) => rect);
     if (!rects.length) return;
-    const atEnd = window.scrollY + innerHeight >= document.documentElement.scrollHeight - 2;
-    // Keep the highlighted entry in sync with the sticky header, which covers the section tops.
-    const header = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--topbar-height")) || 0;
-    const threshold = header + 24;
+    const view = settingsScroll.getBoundingClientRect();
+    const atEnd = settingsScroll.scrollTop + settingsScroll.clientHeight >= settingsScroll.scrollHeight - 2;
+    // The index lives outside the scroller, so a section is "current" once its
+    // top tucks under the scroll viewport's top edge.
+    const threshold = view.top + 16;
     if (chosenSettingsSection) {
       const chosenRect = rects.find(([entry]) => entry.button === chosenSettingsSection.button)?.[1];
       // Bottom cards can never reach the top line; keep the click highlight while they stay on screen at page end.
-      const keep = Math.abs(chosenSettingsSection.y - window.scrollY) < 2 || (atEnd && chosenRect && chosenRect.top < innerHeight && chosenRect.bottom > 0);
+      const keep = Math.abs(chosenSettingsSection.y - settingsScroll.scrollTop) < 2 || (atEnd && chosenRect && chosenRect.top < view.bottom && chosenRect.bottom > view.top);
       if (keep) { markSettingsSection(chosenSettingsSection.button); return; }
       chosenSettingsSection = null;
     }
     let current = rects.filter(([, rect]) => rect.top <= threshold).at(-1)?.[0];
     if (atEnd) {
       const upcoming = rects.find(([, rect]) => rect.top > threshold);
-      if (upcoming && upcoming[1].top < innerHeight * .5) current = upcoming[0];
+      if (upcoming && upcoming[1].top < view.top + settingsScroll.clientHeight * .5) current = upcoming[0];
     }
     current ||= rects[0][0];
     markSettingsSection(current.button);
   });
 }
-window.addEventListener("scroll", scheduleSettingsIndex, {passive:true});
+settingsScroll.addEventListener("scroll", () => {
+  // Lift the fixed head/index once content scrolls under them.
+  byId("settings-view").dataset.scrolled = String(settingsScroll.scrollTop > 4);
+  scheduleSettingsIndex();
+}, {passive:true});
 window.addEventListener("resize", scheduleSettingsIndex);
 // Content height changes (expanded details, mounted weather panel) move section
 // tops without a scroll event; re-sync the index then too.
 const settingsResize = new ResizeObserver(scheduleSettingsIndex);
 settingsResize.observe(byId("settings-content"));
 settingsResize.observe(byId("layout-options"));
+settingsResize.observe(byId("more-preferences"));
+function closeSettings() {
+  if (document.body.dataset.settingsOpen === "true") location.hash = "#home";
+}
+byId("settings-close").addEventListener("click", closeSettings);
+byId("settings-scrim").addEventListener("click", closeSettings);
+document.addEventListener("keydown", event => {
+  // Esc during IME composition cancels the input, not the drawer.
+  if (event.key === "Escape" && !event.isComposing && !event.defaultPrevented && document.body.dataset.settingsOpen === "true") closeSettings();
+});
+// Modal drawer: keep Tab cycling inside while it is open.
+byId("settings-view").addEventListener("keydown", event => {
+  if (event.key !== "Tab" || document.body.dataset.settingsOpen !== "true") return;
+  const items = [...byId("settings-view").querySelectorAll('a[href], button:not(:disabled), input:not(:disabled):not([type="hidden"]), select:not(:disabled), textarea:not(:disabled), summary, [tabindex]:not([tabindex="-1"])')]
+    .filter(node => node.getClientRects().length);
+  if (!items.length) return;
+  const first = items[0], last = items[items.length - 1];
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+});
 window.addEventListener("hashchange", () => navigate());
 navigate(false);
