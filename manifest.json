@@ -3,9 +3,9 @@
   "name": "Daybreak 晨屿",
   "version": "1.1.1",
   "description": "自己的浏览器起始页，展示浏览器书签与天气设置。",
-  "permissions": ["storage", "unlimitedStorage", "activeTab", "bookmarks", "search", "favicon"],
+  "permissions": ["storage", "unlimitedStorage", "bookmarks", "favicon"],
   "optional_permissions": ["topSites"],
-  "background": {"service_worker":"background.js","type":"module"},
+  "background": {"service_worker":"background.js"},
   "host_permissions": [
     "https://restapi.amap.com/*",
     "https://www.bing.com/*"

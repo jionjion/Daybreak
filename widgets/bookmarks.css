@@ -3,10 +3,8 @@
   --bm-muted: var(--subtle, #6e6e69);
   --bm-hover: var(--hover, #f2f2f0);
   --bm-line: var(--line, #e4e4e1);
-  --bm-paper: var(--surface, #ffffff);
   --bm-accent: var(--accent, #3f3f3c);
   --bm-accent-text: var(--accent-text, #2f2f2c);
-  --bm-accent-line: var(--accent-line, #cfcfcc);
   color: var(--bm-ink);
 }
 .bookmarks-sheets {

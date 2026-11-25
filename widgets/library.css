@@ -63,7 +63,7 @@
   color: inherit;
 }
 .library-input::placeholder { color: var(--library-muted); }
-.library-status, .library-time, .library-url {
+.library-status, .library-url {
   color: var(--library-muted);
   font-size: 12px;
   line-height: 1.5;
@@ -209,7 +209,6 @@
 .library-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 .library-dialog button:disabled, .library-folder-bar button:disabled { opacity: .55; cursor: default; }
 .library-entry .library-text-button { min-width: 36px; min-height: 34px; }
-.library-time { white-space: nowrap; font-variant-numeric: tabular-nums; }
 @media (max-width: 640px) {
   .library-toolbar { gap: 8px; }
   .library-search { flex-basis: 100%; max-width: none; }

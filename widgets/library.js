@@ -1,11 +1,4 @@
-const historyBatch = 250;
 const pageSize = 60;
-const dateFormat = new Intl.DateTimeFormat("zh-CN", {
-  year: "numeric", month: "long", day: "numeric", weekday: "short"
-});
-const timeFormat = new Intl.DateTimeFormat("zh-CN", {
-  hour: "2-digit", minute: "2-digit", hourCycle: "h23"
-});
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -50,22 +43,6 @@ function bookmarkLibrary(tree) {
   return { rows, folders };
 }
 
-function historyRows(items) {
-  const rows = [];
-  for (const item of items) {
-    const url = webAddress(item.url);
-    if (!url) continue;
-    const date = new Date(item.lastVisitTime);
-    const validTime = Number.isFinite(date.getTime());
-    rows.push({
-      title: item.title || url.hostname, url,
-      group: validTime ? dateFormat.format(date) : "更早",
-      time: validTime ? timeFormat.format(date) : ""
-    });
-  }
-  return rows;
-}
-
 function linkRow(item) {
   const row = element("a", "library-row");
   row.href = item.url.href;
@@ -78,7 +55,6 @@ function linkRow(item) {
   const body = element("span", "library-link-body");
   body.append(element("strong", "library-link-title", item.title), element("span", "library-url", host));
   row.append(mark, body);
-  if (item.time) row.append(element("span", "library-time", item.time));
   const arrow = element("span", "library-arrow", "↗");
   arrow.setAttribute("aria-hidden", "true");
   row.append(arrow);
@@ -177,10 +153,8 @@ async function editBookmark(api, record, values) {
   }
 }
 
-export function mountLibrary(root, mode) {
-  const history = mode === "history";
-  const label = history ? "历史记录" : "书签";
-  const api = globalThis.chrome?.[history ? "history" : "bookmarks"];
+export function mountLibrary(root) {
+  const api = globalThis.chrome?.bookmarks;
   const panel = element("div", "library-panel");
   const bar = element("div", "library-toolbar");
   const field = element("label", "library-search");
@@ -188,35 +162,12 @@ export function mountLibrary(root, mode) {
   glass.setAttribute("aria-hidden", "true");
   const input = element("input", "library-input");
   input.type = "search";
-  input.placeholder = history ? "搜索浏览过的网页" : "搜索书签名称、网址或文件夹";
+  input.placeholder = "搜索书签名称、网址或文件夹";
   input.setAttribute("aria-label", input.placeholder);
   field.append(glass, input);
   const status = element("span", "library-status", "正在读取…");
   status.setAttribute("role", "status");
-  bar.append(field);
-  const range = element("select", "library-field");
-  range.setAttribute("aria-label", "历史时间范围");
-  for (const days of [7, 30, 90, 0]) {
-    range.append(new Option(days ? "最近 " + days + " 天" : "全部时间", String(days)));
-  }
-  range.value = "30";
-  if (history) {
-    bar.append(range);
-    if (api) bar.append(button("清除历史记录", "library-text-button", () => {
-      const days = Number(range.value);
-      const title = days ? "清除最近 " + days + " 天的历史记录" : "清除全部历史记录";
-      const confirm = modal(panel, title, "确认清除", true);
-      confirm.content.append(element("p", "library-confirm-message", "将从浏览器清除所选时间内的全部访问，包括当前搜索未显示的网页。操作无法撤销。"));
-      confirm.open(async () => {
-        if (days) {
-          const endTime = Date.now();
-          await api.deleteRange({startTime: endTime - days * 86400000, endTime});
-        } else await api.deleteAll();
-        saved("已清除所选时间内的浏览记录。");
-      });
-    }));
-  }
-  bar.append(status);
+  bar.append(field, status);
   const list = element("div", "library-list");
   const folderBar = element("div", "library-folder-bar");
   folderBar.hidden = true;
@@ -233,22 +184,19 @@ export function mountLibrary(root, mode) {
   more.type = "button";
   more.hidden = true;
   panel.append(bar);
-  if (!history && api) panel.append(folderBar);
+  if (api) panel.append(folderBar);
   panel.append(feedback, list, more);
   root.replaceChildren(panel);
 
   let bookmarks = [];
   let folders = [];
-  let rows = [];
-  let historyFetched = historyBatch;
-  let moreHistory = false;
   let focusNext = null;
   let limit = pageSize;
   let generation = 0;
   let timer;
   let active = true;
   const listeners = [];
-  const targetKey = "daybreak.layout." + (history ? "historyNewTab" : "bookmarksNewTab");
+  const targetKey = "daybreak.layout.bookmarksNewTab";
   let openNew = true;
   const changeTarget = value => {
     openNew = value !== false;
@@ -315,18 +263,16 @@ export function mountLibrary(root, mode) {
   }
 
   function confirmRemove(record, isFolder = false) {
-    const label = history ? "历史记录" : isFolder ? "文件夹" : "书签";
+    const label = isFolder ? "文件夹" : "书签";
     const confirm = modal(panel, "删除" + label, "确认删除", true);
     const identity = isFolder ? record.path : record.title;
     confirm.content.append(element("strong", "library-confirm-title", identity));
     if (!isFolder) confirm.content.append(element("span", "library-confirm-url", record.url.href));
-    const message = history ? "将删除这个网址的全部浏览记录，包括 30 天之前的访问。"
-      : isFolder && record.nonEmpty ? "此文件夹中的所有书签和子文件夹也将一并从浏览器中删除。"
+    const message = isFolder && record.nonEmpty ? "此文件夹中的所有书签和子文件夹也将一并从浏览器中删除。"
       : "将从浏览器中删除这个" + label + "。";
     confirm.content.append(element("p", "library-confirm-message", message));
     confirm.open(async () => {
-      if (history) await api.deleteUrl({ url: record.url.href });
-      else if (isFolder && record.nonEmpty) await api.removeTree(record.id);
+      if (isFolder && record.nonEmpty) await api.removeTree(record.id);
       else await api.remove(record.id);
       saved("已删除" + label + "。");
     });
@@ -334,16 +280,14 @@ export function mountLibrary(root, mode) {
 
   function render() {
     const query = input.value.trim().toLocaleLowerCase();
-    const visibleRows = history ? rows : bookmarks.filter(item =>
+    const visibleRows = bookmarks.filter(item =>
       (!scope.value || item.ancestors.includes(scope.value)) &&
       (!query || [item.title, item.url.href, item.group].some(value => value.toLocaleLowerCase().includes(query)))
     );
     rename.hidden = removeFolder.hidden = !selectedFolder()?.mutable;
     const count = visibleRows.length;
-    status.textContent = history
-      ? (moreHistory ? "已读取最近 " : "共 ") + count + " 个网页"
-      : count + " 个网页书签";
-    more.hidden = count <= limit && !(history && moreHistory);
+    status.textContent = count + " 个网页书签";
+    more.hidden = count <= limit;
     const fragment = document.createDocumentFragment();
     let lastGroup;
     for (const item of visibleRows.slice(0, limit)) {
@@ -355,21 +299,18 @@ export function mountLibrary(root, mode) {
       const link = linkRow(item);
       link.target = openNew ? "_blank" : "_self";
       entry.append(link);
-      if (history || item.mutable) {
-        if (!history) {
-          const edit = button("编辑", "library-text-button", () => bookmarkForm(item));
-          edit.setAttribute("aria-label", "编辑书签 " + item.title);
-          entry.append(edit);
-        }
+      if (item.mutable) {
+        const edit = button("编辑", "library-text-button", () => bookmarkForm(item));
+        edit.setAttribute("aria-label", "编辑书签 " + item.title);
+        entry.append(edit);
         const del = button("删除", "library-text-button", () => confirmRemove(item));
-        del.setAttribute("aria-label", "删除" + label + " " + item.title);
+        del.setAttribute("aria-label", "删除书签 " + item.title);
         entry.append(del);
       }
       fragment.append(entry);
     }
     if (!count) {
-      const message = query ? "没有匹配的网页，试试其他关键词。" :
-        history ? "所选时间内还没有匹配的网页记录。" : "这个位置还没有网页书签。";
+      const message = query ? "没有匹配的网页，试试其他关键词。" : "这个位置还没有网页书签。";
       fragment.append(element("p", "library-empty", message));
     }
     list.replaceChildren(fragment);
@@ -381,26 +322,16 @@ export function mountLibrary(root, mode) {
 
   async function refresh(request) {
     try {
-      if (history) {
-        const start = new Date();
-        const days = Number(range.value);
-        start.setDate(start.getDate() - days);
-        const items = await api.search({ text: input.value.trim(), startTime: days ? start.getTime() : 0, maxResults: historyFetched });
-        if (request !== generation) return;
-        moreHistory = items.length === historyFetched;
-        rows = historyRows(items);
-      } else {
-        const tree = await api.getTree();
-        if (request !== generation) return;
-        const library = bookmarkLibrary(tree);
-        bookmarks = library.rows;
-        updateFolders(library.folders);
-      }
+      const tree = await api.getTree();
+      if (request !== generation) return;
+      const library = bookmarkLibrary(tree);
+      bookmarks = library.rows;
+      updateFolders(library.folders);
       render();
     } catch {
       if (request !== generation) return;
       status.textContent = "";
-      list.replaceChildren(element("p", "library-empty", "读取" + label + "失败，请检查扩展权限后重试。"));
+      list.replaceChildren(element("p", "library-empty", "读取书签失败，请检查扩展权限后重试。"));
       more.hidden = true;
     }
   }
@@ -411,28 +342,15 @@ export function mountLibrary(root, mode) {
     timer = setTimeout(() => refresh(request), 120);
   }
 
-  function resetSearch() {
-    limit = pageSize;
-    historyFetched = historyBatch;
-    focusNext = null;
-    if (history) schedule();
-    else render();
-  }
-  input.addEventListener("input", resetSearch);
-  range.addEventListener("change", resetSearch);
+  input.addEventListener("input", () => { limit = pageSize; focusNext = null; render(); });
   scope.addEventListener("change", () => { limit = pageSize; render(); });
   more.addEventListener("click", () => {
     focusNext = list.querySelectorAll(".library-row").length;
     limit += pageSize;
-    if (history && moreHistory && rows.length < limit) {
-      historyFetched += historyBatch;
-      schedule();
-    } else render();
+    render();
   });
-  if (api && typeof api[history ? "search" : "getTree"] === "function") {
-    const events = history
-      ? [api.onVisited, api.onVisitRemoved]
-      : [api.onCreated, api.onRemoved, api.onChanged, api.onMoved, api.onChildrenReordered, api.onImportEnded];
+  if (api && typeof api.getTree === "function") {
+    const events = [api.onCreated, api.onRemoved, api.onChanged, api.onMoved, api.onChildrenReordered, api.onImportEnded];
     for (const event of events) {
       if (!event) continue;
       event.addListener(schedule);
@@ -442,7 +360,7 @@ export function mountLibrary(root, mode) {
   } else {
     input.disabled = true;
     status.textContent = "";
-    list.replaceChildren(element("p", "library-empty", "请通过已加载的晨屿扩展打开此页，并允许读取" + label + "。"));
+    list.replaceChildren(element("p", "library-empty", "请通过已加载的晨屿扩展打开此页，并允许读取书签。"));
   }
   return () => {
     active = false;

@@ -13,7 +13,6 @@ const drawings = {
   left: '<path d="M20 12H5m6-6-6 6 6 6"/>',
   bookmark: '<path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5v16l-6-4-6 4z"/>',
   settings: '<path d="M4 7h6m5 0h5M4 17h3m5 0h8"/><circle cx="12.5" cy="7" r="2.5"/><circle cx="9.5" cy="17" r="2.5"/>',
-  search: '<circle cx="10.5" cy="10.5" r="6.6"/><path d="m16 16 4.5 4.5"/>',
   image: '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.3" cy="9" r="1.4"/><path d="m7 20 8-9 6 6"/>',
   weather: '<path d="M13.5 16a4.3 4.3 0 1 0-5.8-5.1M12 2v2M4.8 5l1.5 1.4M19.3 5l-1.5 1.4M21 12h-2"/><path d="M6 20a3.5 3.5 0 1 1 .3-7 4.6 4.6 0 0 1 8.3 2A2.6 2.6 0 1 1 15 20z"/>'
 };
@@ -87,7 +86,7 @@ function navigate(shouldFocus = true) {
   if (detail) {
     byId("detail-title").textContent = titles[name];
     const root = byId("detail-content");
-    cleanupDetail=mountLibrary(root,name);
+    cleanupDetail=mountLibrary(root);
   }
   document.title = route === "home" ? "Daybreak 晨屿" : (titles[route] || "个人设置") + " · 晨屿";
   if (shouldFocus) { window.scrollTo(0, 0); byId("main").focus({preventScroll:true}); }
@@ -114,9 +113,10 @@ byId("wall-next").addEventListener("click",async()=>{
   const status=document.querySelector(".wall-message"),button=byId("wall-next");
   button.disabled=true;
   status.textContent="";
-  try { await nextWallpaper(); }
-  catch(e){status.textContent=e.message||"未能切换壁纸。";}
-  finally{button.disabled=false;}
+  // nextWallpaper resolves with {ok, message}; it never throws.
+  const result=await nextWallpaper();
+  if(!result?.ok)status.textContent=result?.message||"未能切换壁纸。";
+  button.disabled=false;
 });
 const settingsIndex = byId("settings-index");
 const wallpaperSection = "#settings-content .settings-themes";

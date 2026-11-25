@@ -147,7 +147,7 @@ export function setupQuickStrip(root) {
         const tree=await chrome.bookmarks.getTree(), children=tree[0]?.children || [];
         const toolbar=children.find(node=>node.folderType==="bookmarks-bar" || node.id==="1") || children[0];
         const collect=nodes=>nodes.flatMap(node=>node.url ? [node] : collect(node.children||[]));
-        rows.push(row("书签栏",collect(toolbar?.children||[]),values.bookmarksNewTab));
+        rows.push(row("书签栏",collect(toolbar?.children||[]),values.linksNewTab));
       } catch { rows.push(row("书签栏",[],false)); }
     }
     if (values.frequentBar && chrome.topSites) {

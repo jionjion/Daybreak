@@ -92,19 +92,9 @@ async function searchAmap(name, config, controller) {
   for (const item of Array.isArray(data.districts) ? data.districts : []) {
     const adcode = String(item.adcode || "");
     if (!adcode || found.has(adcode)) continue;
-    const [longitude, latitude] = String(item.center || "").split(",").map(Number);
     const admin1 = [item.province, item.city].filter((value, index, values) =>
       value && value !== item.name && values.indexOf(value) === index).join(" · ");
-    const record = {
-      name: item.name || adcode,
-      adcode,
-      admin1,
-      country: "中国",
-      timezone: "Asia/Shanghai",
-    };
-    if (Number.isFinite(latitude)) record.latitude = latitude;
-    if (Number.isFinite(longitude)) record.longitude = longitude;
-    found.set(adcode, record);
+    found.set(adcode, { name: item.name || adcode, adcode, admin1, country: "中国" });
   }
   return [...found.values()].slice(0, 8);
 }
@@ -141,7 +131,7 @@ async function amapForecast(city, config, controller) {
     city: cityId(city), fetched: Date.now(), current, high, low,
     source: SOURCE, summary: live.weather || today.dayweather || "",
     time: live.reporttime || forecast.reporttime || "",
-    humidity: num(live.humidity), pressure: NaN, wind,
+    humidity: num(live.humidity), wind,
     days: casts.map(cast => {
       const day = String(cast.dayweather || "").trim();
       const night = String(cast.nightweather || "").trim();
@@ -264,14 +254,7 @@ export function mountWeather(root) {
     get(".weather-unit").value = unit;
     const atmosphere = [];
     if (Number.isFinite(cached.humidity)) atmosphere.push("相对湿度 " + cached.humidity + "%");
-    if (Number.isFinite(cached.pressure)) atmosphere.push("气压 " + Math.round(cached.pressure) + " hPa");
-    if (Number.isFinite(cached.windSpeed)) {
-      const points=["北","东北","东","东南","南","西南","西","西北"];
-      const direction=Number.isFinite(cached.windDirection)?points[(Math.round(cached.windDirection/45)%8+8)%8]:"";
-      atmosphere.push((direction?direction+"风 ":"风速 ")+Math.round(cached.windSpeed)+" km/h");
-    } else if (cached.wind) {
-      atmosphere.push(cached.wind);
-    }
+    if (cached.wind) atmosphere.push(cached.wind);
     get(".weather-atmosphere").textContent = atmosphere.join(" · ");
     get(".weather-days").replaceChildren(...(cached.days || []).filter(day => Number.isFinite(day.high) && Number.isFinite(day.low)).map(day => {
       const row = document.createElement("li");
