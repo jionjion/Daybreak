@@ -4,7 +4,7 @@ const defaults = {
   iconSize: 54, iconRadius: 15, iconOpacity: 100,
   iconShadow:false, textShadow:true, fontSize:13, fontFace:"system",labelColor:"auto",
   searchWidth:640, searchRadius:10,searchOpacity:100,searchShadow:true,homeScale:100,
-  bookmarkBar: false, frequentBar: false, linksNewTab: true, bookmarksNewTab: true
+  bookmarkBar: false, frequentBar: false, linksNewTab: true, bookmarksNewTab: false
 };
 const ranges = { iconSize: [34, 104], iconRadius: [0, 52], iconOpacity: [25, 100],
   fontSize:[10,22],searchWidth:[285,900],searchRadius:[0,32],searchOpacity:[35,100],homeScale:[75,130] };

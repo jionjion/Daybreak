@@ -1,4 +1,5 @@
-const linkKey = "daybreak.layout.linksNewTab";
+// The bookmarks list opens in the current tab unless "在新标签页打开书签列表" is on.
+const linkKey = "daybreak.layout.bookmarksNewTab";
 const events = ["onCreated", "onRemoved", "onChanged", "onMoved", "onChildrenReordered", "onImportEnded"];
 let defaultFavicon;
 
@@ -198,7 +199,7 @@ export function mountBookmarks(root) {
 
   let tree = null;
   let activeId = null;
-  let linkNewTab = true;
+  let linkNewTab = false;
   let failure = false;
   let alive = true;
   let generation = 0;
@@ -304,14 +305,14 @@ export function mountBookmarks(root) {
     try {
       const values = await storage.get(linkKey);
       if (!alive) return;
-      linkNewTab = values?.[linkKey] !== false;
+      linkNewTab = values?.[linkKey] === true;
       render();
     } catch { /* Keep the default. */ }
   }
 
   function onStorageChanged(changes, area) {
     if (area !== "local" || !(linkKey in changes)) return;
-    linkNewTab = changes[linkKey].newValue !== false;
+    linkNewTab = changes[linkKey].newValue === true;
     render();
   }
 
