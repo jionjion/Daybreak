@@ -1,6 +1,6 @@
 # Infinity Pro 和 Daybreak 晨屿的功能对照
 
-参考版本为 Chrome 上的 **Infinity 新标签页 (Pro) 11.0.41**，ID 为 `nnnkddnnlpamobajfibfdgfnbcnkgngh`。对照使用了该版本的实际新标签页、中文界面资源、扩展清单和原生导出文件。下表对应 **晨屿 1.1.1**。[Infinity Pro 商店页](https://chromewebstore.google.com/detail/infinity-new-tab-pro/nnnkddnnlpamobajfibfdgfnbcnkgngh)
+参考版本为 Chrome 上的 **Infinity 新标签页 (Pro) 11.0.41**，ID 为 `nnnkddnnlpamobajfibfdgfnbcnkgngh`。对照使用了该版本的实际新标签页、中文界面资源、扩展清单和原生导出文件。下表对应 **晨屿 1.2.0**。[Infinity Pro 商店页](https://chromewebstore.google.com/detail/infinity-new-tab-pro/nnnkddnnlpamobajfibfdgfnbcnkgngh)
 
 | 功能 | 晨屿已经支持 | 相较原版的差异 |
 | --- | --- | --- |

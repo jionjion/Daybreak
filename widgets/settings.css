@@ -97,11 +97,25 @@ body[data-settings-open="true"] #settings-view {
   padding: 0 26px 14px;
   overflow-x: auto;
   overflow-y: hidden;
-  border-bottom: 1px solid var(--line);
   scrollbar-width: none;
-  mask-image: linear-gradient(90deg, #000 calc(100% - 30px), transparent);
 }
-.settings-drawer-top { flex: none; transition: box-shadow .2s ease; }
+/* Scroll-aware edge fades (app.js sets data-edges) hint that the pill row
+   continues past either cut instead of ending abruptly. The divider lives on
+   the wrapper above so the fades apply to pills only. The -webkit- form keeps
+   the fade on Chromium 111-119, where unprefixed mask-image does not parse. */
+#settings-view #settings-index[data-edges="right"] {
+  -webkit-mask-image: linear-gradient(90deg, #000, #000 calc(100% - 30px), transparent);
+  mask-image: linear-gradient(90deg, #000, #000 calc(100% - 30px), transparent);
+}
+#settings-view #settings-index[data-edges="left"] {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 30px, #000);
+  mask-image: linear-gradient(90deg, transparent, #000 30px, #000);
+}
+#settings-view #settings-index[data-edges="both"] {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 30px, #000 calc(100% - 30px), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 30px, #000 calc(100% - 30px), transparent);
+}
+.settings-drawer-top { flex: none; border-bottom: 1px solid var(--line); transition: box-shadow .2s ease; }
 #settings-view[data-scrolled="true"] .settings-drawer-top { box-shadow: 0 12px 20px -16px rgb(24 18 30 / .4); }
 #settings-view #settings-index::-webkit-scrollbar { display: none; }
 #settings-view #settings-index button {

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Daybreak 晨屿",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "自己的浏览器起始页，展示浏览器书签与天气设置。",
   "permissions": ["storage", "unlimitedStorage", "bookmarks", "favicon"],
   "optional_permissions": ["topSites"],

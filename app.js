@@ -192,12 +192,21 @@ function markSettingsSection(current) {
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   settingsIndex.scrollTo({left:settingsIndex.scrollLeft + rect.left - nav.left - 12, behavior:reduce ? "auto" : "smooth"});
 }
+/* The pills fade at whichever side can still scroll, so the row never ends in
+   a hard cut (mirrored by the data-edges masks in settings.css). */
+function syncIndexEdges() {
+  const start = settingsIndex.scrollLeft <= 2;
+  const end = settingsIndex.scrollLeft + settingsIndex.clientWidth >= settingsIndex.scrollWidth - 2;
+  settingsIndex.dataset.edges = start && end ? "none" : start ? "right" : end ? "left" : "both";
+}
+settingsIndex.addEventListener("scroll", syncIndexEdges, { passive: true });
 let settingsFrame = 0;
 function scheduleSettingsIndex() {
   if (settingsFrame || document.body.dataset.settingsOpen !== "true") return;
   settingsFrame = requestAnimationFrame(() => {
     settingsFrame = 0;
     if (document.body.dataset.settingsOpen !== "true") return;
+    syncIndexEdges();
     const rects = sections.map(entry => [entry, entry.section()?.getBoundingClientRect()]).filter(([, rect]) => rect);
     if (!rects.length) return;
     const view = settingsScroll.getBoundingClientRect();

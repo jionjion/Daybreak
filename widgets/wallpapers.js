@@ -99,9 +99,6 @@ async function rotate(c, order = c.order) {
   }
   return usePhoto(photos[index], c.album);
 }
-function bingPermission() {
-  return globalThis.chrome?.permissions ? chrome.permissions.request({origins:[bingOrigin + "/*"]}) : Promise.resolve(true);
-}
 async function requestBing(url) {
   const response = await fetch(url, {credentials:"omit", referrerPolicy:"no-referrer", signal:AbortSignal.timeout(11000)});
   if (!response.ok || new URL(response.url || url).origin !== bingOrigin) throw new Error("Bing 请求失败");
@@ -308,12 +305,8 @@ export function mountWallpapers(root) {
   button("download").onclick = () => action(downloadCurrent);
   bing.onchange = () => {
     if (!bing.checked) { localAction(() => set({[base+"bing"]:false})); return; }
-    const permission = bingPermission();
-    localAction(async () => {
-      if (!await permission) { bing.checked = false; message("启用 Bing 壁纸需要允许访问 www.bing.com。"); return; }
-      message("正在获取 Bing 今日壁纸…");
-      return locked(() => showBing(false));
-    });
+    message("正在获取 Bing 今日壁纸…");
+    localAction(() => locked(() => showBing(false)));
   };
   button("bing").onclick = () => localAction(() => locked(() => showBing(true)));
   redraw();

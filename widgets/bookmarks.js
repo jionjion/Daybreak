@@ -192,7 +192,8 @@ export function mountBookmarks(root) {
   const status = element("p", "bookmarks-empty");
   status.setAttribute("role", "status");
   status.hidden = true;
-  box.append(tabs, list, status);
+  // The hint lives inside the list so an empty sheet keeps the band height.
+  box.append(tabs, list);
   root.replaceChildren(box);
 
   let tree = null;
@@ -264,7 +265,7 @@ export function mountBookmarks(root) {
 
     const grid = element("div", "bookmarks-grid");
     grid.append(...bookmarks.map(bookmarkTile));
-    list.replaceChildren(grid);
+    list.replaceChildren(grid, status);
 
     if (failure) status.textContent = "读取浏览器书签失败，请检查扩展权限后重试。";
     else if (!api) status.textContent = "请通过已加载的晨屿扩展打开此页，并允许读取书签。";
