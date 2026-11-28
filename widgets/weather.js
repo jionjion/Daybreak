@@ -1,23 +1,15 @@
+import { BOOT_KEYS, writeBoot } from "../shared/boot.js";
+import { getValue, onStorageChange, setValues } from "../shared/storage.js";
+
 const CITY_KEY = "daybreak.weather.city";
 const CACHE_KEY = "daybreak.weather.forecast";
-const UNIT_KEY = "daybreak.weather.unit";
 const CITIES_KEY = "daybreak.weather.cities";
 const API_KEY = "daybreak.weather.apiKey";
 const FRESH_FOR = 30 * 60 * 1000;
 const SOURCE = "高德天气";
 const CONFIG_HINT = "请先填写并保存 API Key。";
 
-async function read(key) {
-  const storage = globalThis.chrome?.storage?.local;
-  if (storage) return (await storage.get(key))[key];
-  return JSON.parse(localStorage.getItem(key));
-}
-
-async function write(key, value) {
-  const storage = globalThis.chrome?.storage?.local;
-  if (storage) await storage.set({ [key]: value });
-  else localStorage.setItem(key, JSON.stringify(value));
-}
+const inflightForecasts = new Map();
 
 async function request(url, controller, { timeoutMs = 12000 } = {}) {
   const attempt = new AbortController();
@@ -40,11 +32,11 @@ async function request(url, controller, { timeoutMs = 12000 } = {}) {
 }
 
 async function weatherConfig() {
-  const key = await read(API_KEY).catch(() => "");
+  const key = await getValue(API_KEY).catch(() => "");
   return { key: typeof key === "string" ? key.trim() : "" };
 }
 
-function apiError(data) {
+export function apiError(data) {
   if (String(data?.status) === "1" || String(data?.infocode) === "10000") return null;
   const code = String(data?.infocode || "");
   if (["10001", "10002", "10013"].includes(code)) return new Error("高德天气认证失败，请检查 API Key。");
@@ -55,7 +47,7 @@ function apiError(data) {
   return new Error("高德天气返回错误代码 " + (code || "未知") + "。");
 }
 
-function errorText(error, fallback) {
+export function errorText(error, fallback) {
   if (error?.message === "CONFIG") return CONFIG_HINT;
   if (error?.status === 401) return "高德天气认证失败，请检查 API Key。";
   if (error?.status === 403) return "高德 API Key 没有天气查询权限，或请求次数已用尽。";
@@ -68,7 +60,7 @@ function num(value) {
   return value === "" || value == null ? NaN : Number(value);
 }
 
-function validCity(city) {
+export function validCity(city) {
   return typeof city?.name === "string" && typeof city.adcode === "string" && Boolean(city.adcode);
 }
 
@@ -78,7 +70,8 @@ function cityId(city) {
 
 function details(city) {
   return [city.admin1, city.country].filter((value, index, values) =>
-    value && value !== city.name && values.indexOf(value) === index).join(" · ");
+    value && value !== city.name && values.indexOf(value) === index
+  ).join(" · ");
 }
 
 async function searchAmap(name, config, controller) {
@@ -93,7 +86,8 @@ async function searchAmap(name, config, controller) {
     const adcode = String(item.adcode || "");
     if (!adcode || found.has(adcode)) continue;
     const admin1 = [item.province, item.city].filter((value, index, values) =>
-      value && value !== item.name && values.indexOf(value) === index).join(" · ");
+      value && value !== item.name && values.indexOf(value) === index
+    ).join(" · ");
     found.set(adcode, { name: item.name || adcode, adcode, admin1, country: "中国" });
   }
   return [...found.values()].slice(0, 8);
@@ -128,10 +122,16 @@ async function amapForecast(city, config, controller) {
     ? windDirection + "风" + (windPower ? " " + windPower + "级" : "")
     : windPower ? "风力 " + windPower + "级" : "";
   return {
-    city: cityId(city), fetched: Date.now(), current, high, low,
-    source: SOURCE, summary: live.weather || today.dayweather || "",
+    city: cityId(city),
+    fetched: Date.now(),
+    current,
+    high,
+    low,
+    source: SOURCE,
+    summary: live.weather || today.dayweather || "",
     time: live.reporttime || forecast.reporttime || "",
-    humidity: num(live.humidity), wind,
+    humidity: num(live.humidity),
+    wind,
     days: casts.map(cast => {
       const day = String(cast.dayweather || "").trim();
       const night = String(cast.nightweather || "").trim();
@@ -145,7 +145,29 @@ async function amapForecast(city, config, controller) {
   };
 }
 
-function matchesCache(cache, city) {
+function fetchForecastShared(city, config, { force = false } = {}) {
+  const id = cityId(city);
+  if (!force && inflightForecasts.has(id)) {
+    return inflightForecasts.get(id);
+  }
+  const requestController = new AbortController();
+  const task = (async () => {
+    const forecast = await amapForecast(city, config, requestController);
+    let cacheError = false;
+    try {
+      await setValues({ [CACHE_KEY]: forecast });
+    } catch {
+      cacheError = true;
+    }
+    return { forecast, cacheError };
+  })().finally(() => {
+    if (inflightForecasts.get(id) === task) inflightForecasts.delete(id);
+  });
+  inflightForecasts.set(id, task);
+  return task;
+}
+
+export function matchesCache(cache, city) {
   return cache?.city === cityId(city) && [cache.fetched, cache.current, cache.high, cache.low].every(Number.isFinite);
 }
 
@@ -158,11 +180,12 @@ export function mountWeather(root) {
         <strong class="weather-temperature"></strong>
         <div><span class="weather-condition"></span><span class="weather-range"></span></div>
       </div>
+      <p class="weather-atmosphere" hidden></p>
+      <div class="weather-forecast" hidden>
+        <div class="weather-forecast-head"><span>未来几天 · 摄氏度</span></div>
+        <ul class="weather-days" aria-label="未来几天天气"></ul>
+      </div>
       <div class="weather-meta"><span class="weather-stamp"></span><button type="button" class="weather-refresh">刷新</button></div>
-      <details class="weather-details" hidden><summary>天气预报</summary>
-        <label class="weather-unit-label">温度单位 <select class="weather-unit" aria-label="温度单位"><option value="C">摄氏度 °C</option><option value="F">华氏度 °F</option></select></label>
-        <p class="weather-atmosphere"></p><ul class="weather-days"></ul>
-      </details>
     </div>
     <div class="weather-picker" hidden>
       <form class="weather-form" novalidate><input type="search" autocomplete="off" aria-label="城市名称" placeholder="输入城市名，例如 杭州" required><button type="submit">搜索</button></form>
@@ -171,23 +194,45 @@ export function mountWeather(root) {
       <ul class="weather-results" aria-label="匹配的城市" hidden></ul>
       <button type="button" class="weather-cancel" hidden>取消</button>
     </div>
-    <p class="weather-status" role="status" hidden></p>
-    <div class="weather-credit" hidden><a class="weather-source" href="https://lbs.amap.com/" target="_blank" rel="noopener noreferrer">高德开放平台</a></div>`;
+    <p class="weather-status" role="status" hidden></p>`;
 
-  const get = (selector) => root.querySelector(selector);
-  const overview = get(".weather-overview"), picker = get(".weather-picker"), reading = get(".weather-reading");
-  const form = get(".weather-form"), input = get(".weather-form input"), list = get(".weather-results");
-  const status = get(".weather-status"), help = get(".weather-help"), refreshButton = get(".weather-refresh");
-  const cancel = get(".weather-cancel"), credit = get(".weather-credit");
-  let city, cached, forecastRequest, searchRequest;
-  let unit = "C", cities = [];
+  const get = selector => root.querySelector(selector);
+  const overview = get(".weather-overview");
+  const picker = get(".weather-picker");
+  const reading = get(".weather-reading");
+  const form = get(".weather-form");
+  const input = get(".weather-form input");
+  const list = get(".weather-results");
+  const status = get(".weather-status");
+  const help = get(".weather-help");
+  const refreshButton = get(".weather-refresh");
+  const cancel = get(".weather-cancel");
+  let city;
+  let cached;
+  let forecastToken = 0;
+  let searchRequest;
+  let cities = [];
   let active = true;
-  const temp = value => Math.round(unit === "F" ? value * 9 / 5 + 32 : value);
+  const temp = value => Math.round(value);
+
+  function dayName(value, index) {
+    const date = new Date(String(value) + "T00:00:00");
+    if (Number.isNaN(date.getTime())) return String(value || "").slice(5).replace("-", "/") || "第 " + (index + 1) + " 天";
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diff = Math.round((date - today) / 86400000);
+    if (diff === 0) return "今天";
+    if (diff === 1) return "明天";
+    if (diff === 2) return "后天";
+    return "周" + "日一二三四五六"[date.getDay()];
+  }
+
   function showSaved() {
     const box = get(".weather-saved");
     box.replaceChildren();
     for (const record of cities) {
-      const button = document.createElement("button"), remove = document.createElement("button");
+      const button = document.createElement("button");
+      const remove = document.createElement("button");
       const pair = document.createElement("span");
       button.type = remove.type = "button";
       button.textContent = record.name;
@@ -197,21 +242,34 @@ export function mountWeather(root) {
       remove.setAttribute("aria-label", "从已存城市移除" + record.name);
       remove.onclick = async () => {
         const next = cities.filter(c => cityId(c) !== cityId(record));
-        try { await write(CITIES_KEY, next); cities = next; showSaved(); }
-        catch { message(help, "城市列表未能保存。"); }
+        try {
+          await setValues({ [CITIES_KEY]: next });
+          cities = next;
+          showSaved();
+        } catch {
+          message(help, "城市列表未能保存。");
+        }
       };
       pair.append(button);
       if (record !== cities[0]) {
         const pin = document.createElement("button");
-        pin.type = "button"; pin.textContent = "↑"; pin.setAttribute("aria-label", "置顶城市" + record.name);
+        pin.type = "button";
+        pin.textContent = "↑";
+        pin.setAttribute("aria-label", "置顶城市" + record.name);
         pin.onclick = async () => {
           const next = [record, ...cities.filter(other => cityId(other) !== cityId(record))];
-          try { await write(CITIES_KEY, next); cities = next; showSaved(); }
-          catch { message(help, "城市顺序未能保存。"); }
+          try {
+            await setValues({ [CITIES_KEY]: next });
+            cities = next;
+            showSaved();
+          } catch {
+            message(help, "城市顺序未能保存。");
+          }
         };
         pair.append(pin);
       }
-      pair.append(remove); box.append(pair);
+      pair.append(remove);
+      box.append(pair);
     }
     box.hidden = !cities.length;
   }
@@ -230,7 +288,6 @@ export function mountWeather(root) {
     list.replaceChildren();
     list.hidden = true;
     message(help, "");
-    credit.hidden = true;
     status.hidden = open || !status.textContent;
     if (open) {
       showSaved();
@@ -242,38 +299,50 @@ export function mountWeather(root) {
     get(".weather-location strong").textContent = city.name;
     get(".weather-location strong").title = [city.name, details(city)].filter(Boolean).join(" · ");
     reading.hidden = !cached;
-    get(".weather-details").hidden = !cached;
+    get(".weather-forecast").hidden = !cached;
+    get(".weather-atmosphere").hidden = !cached;
     const stamp = get(".weather-stamp");
     stamp.textContent = "";
     if (!cached) return;
-    get(".weather-temperature").textContent = temp(cached.current) + "°" + unit;
+    get(".weather-temperature").textContent = temp(cached.current) + "°C";
     get(".weather-condition").textContent = cached.summary || "天气状况未知";
     get(".weather-range").textContent = `最高 ${temp(cached.high)}° · 最低 ${temp(cached.low)}°`;
-    get(".weather-unit").value = unit;
     const atmosphere = [];
     if (Number.isFinite(cached.humidity)) atmosphere.push("相对湿度 " + cached.humidity + "%");
     if (cached.wind) atmosphere.push(cached.wind);
     get(".weather-atmosphere").textContent = atmosphere.join(" · ");
-    get(".weather-days").replaceChildren(...(cached.days || []).filter(day => Number.isFinite(day.high) && Number.isFinite(day.low)).map(day => {
-      const row = document.createElement("li");
-      const date = document.createElement("span"), condition = document.createElement("span"), range = document.createElement("span");
-      date.textContent = String(day.date).slice(5).replace("-", "/"); condition.textContent = day.summary || "";
-      range.textContent = temp(day.low) + "° – " + temp(day.high) + "°";
-      row.append(date, condition, range); return row;
-    }));
-    const time = new Date(cached.fetched).toLocaleString("zh-CN", {month:"numeric", day:"numeric", hour:"2-digit", minute:"2-digit", hour12:false});
+    get(".weather-days").replaceChildren(
+      ...(cached.days || []).filter(day => Number.isFinite(day.high) && Number.isFinite(day.low)).map((day, index) => {
+        const card = document.createElement("li");
+        const name = document.createElement("span");
+        const condition = document.createElement("span");
+        const range = document.createElement("span");
+        name.className = "weather-day-name";
+        condition.className = "weather-day-summary";
+        range.className = "weather-day-range";
+        name.textContent = dayName(day.date, index);
+        condition.textContent = day.summary || "—";
+        range.textContent = temp(day.low) + "° – " + temp(day.high) + "°";
+        card.append(name, condition, range);
+        return card;
+      })
+    );
+    const time = new Date(cached.fetched).toLocaleString("zh-CN", {
+      month: "numeric",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
     stamp.textContent = time + " 更新";
     stamp.title = cached.time ? "预报当地时间 " + cached.time.replace("T", " ") : "";
-    if (picker.hidden) credit.hidden = false;
   }
 
-  async function loadForecast() {
-    forecastRequest?.abort();
-    const controller = new AbortController();
-    forecastRequest = controller;
+  async function loadForecast(force = false) {
+    const token = ++forecastToken;
     refreshButton.disabled = true;
     const config = await weatherConfig();
-    if (!active || forecastRequest !== controller) return;
+    if (!active || token !== forecastToken) return;
     if (!config.key) {
       refreshButton.disabled = false;
       message(status, CONFIG_HINT);
@@ -283,21 +352,16 @@ export function mountWeather(root) {
     message(status, "正在更新天气…");
     status.hidden = !picker.hidden;
     try {
-      const forecast = await amapForecast(city, config, controller);
-      if (!active || forecastRequest !== controller) return;
+      const { forecast, cacheError } = await fetchForecastShared(city, config, { force });
+      if (!active || token !== forecastToken) return;
       cached = forecast;
       display();
-      message(status, "");
-      try {
-        await write(CACHE_KEY, cached);
-      } catch {
-        if (active && forecastRequest === controller) message(status, "本次天气未能缓存。");
-      }
+      message(status, cacheError ? "本次天气未能缓存。" : "");
     } catch (error) {
-      if (!active || forecastRequest !== controller) return;
+      if (!active || token !== forecastToken) return;
       message(status, errorText(error, cached ? "更新失败，显示上次保存的天气。" : "暂时无法获取天气，请稍后刷新。"));
     } finally {
-      if (active && forecastRequest === controller) {
+      if (active && token === forecastToken) {
         refreshButton.disabled = false;
         status.hidden = !picker.hidden || !status.textContent;
       }
@@ -305,34 +369,36 @@ export function mountWeather(root) {
   }
 
   async function chooseCity(nextCity) {
-    forecastRequest?.abort();
-    forecastRequest = null;
+    forecastToken++;
     if (!cached || !matchesCache(cached, nextCity)) cached = null;
     city = nextCity;
     showPicker(false);
     display();
     get(".weather-change").focus();
-    const loading = loadForecast();
+    const loading = loadForecast(false);
     try {
-      await write(CITY_KEY, nextCity);
-      const saved = await read(CITIES_KEY);
+      await setValues({ [CITY_KEY]: nextCity });
+      const saved = await getValue(CITIES_KEY);
       const previous = Array.isArray(saved) ? saved.filter(validCity) : cities;
       const next = previous.some(item => cityId(item) === cityId(nextCity))
-        ? previous.map(item => cityId(item) === cityId(nextCity) ? nextCity : item) : [...previous, nextCity];
-      await write(CITIES_KEY, next); cities = next;
+        ? previous.map(item => (cityId(item) === cityId(nextCity) ? nextCity : item))
+        : [...previous, nextCity];
+      await setValues({ [CITIES_KEY]: next });
+      cities = next;
     } catch {
       await loading;
-      if (active && city === nextCity) message(status, [status.textContent, "城市设置未能保存。"].filter(Boolean).join(" "));
+      if (active && city === nextCity) {
+        message(status, [status.textContent, "城市设置未能保存。"].filter(Boolean).join(" "));
+      }
     }
   }
 
-  form.addEventListener("submit", async (event) => {
+  form.addEventListener("submit", async event => {
     event.preventDefault();
     searchRequest?.abort();
     searchRequest = null;
     list.hidden = true;
     list.replaceChildren();
-    credit.hidden = true;
     const name = input.value.trim();
     if (name.length < 2) {
       message(help, "请输入至少两个字符的城市名。");
@@ -354,7 +420,8 @@ export function mountWeather(root) {
       message(help, results.length ? "请选择城市" : "没有找到匹配的城市，换个城市名再试。");
       for (const record of results) {
         const option = document.createElement("button");
-        const title = document.createElement("strong"), detail = document.createElement("span");
+        const title = document.createElement("strong");
+        const detail = document.createElement("span");
         title.textContent = record.name;
         detail.textContent = details(record);
         option.type = "button";
@@ -365,51 +432,58 @@ export function mountWeather(root) {
         list.append(li);
       }
       list.hidden = !results.length;
-      credit.hidden = !results.length;
     } catch (error) {
       if (active && searchRequest === controller) message(help, errorText(error, "城市搜索失败，请检查网络后重试。"));
     }
   });
+
   input.addEventListener("input", () => {
     searchRequest?.abort();
     searchRequest = null;
-    list.hidden = credit.hidden = true;
+    list.hidden = true;
     list.replaceChildren();
     message(help, "");
   });
-  get(".weather-change").addEventListener("click", () => { showPicker(true); input.focus(); });
-  cancel.addEventListener("click", () => { showPicker(false); get(".weather-change").focus(); });
-  refreshButton.addEventListener("click", loadForecast);
-  get(".weather-unit").addEventListener("change", async event => {
-    const previous = unit;
-    unit = event.target.value === "F" ? "F" : "C"; display();
-    try { await write(UNIT_KEY, unit); }
-    catch { unit = previous; display(); message(status, "温度单位未能保存。"); }
+  get(".weather-change").addEventListener("click", () => {
+    showPicker(true);
+    input.focus();
   });
+  cancel.addEventListener("click", () => {
+    showPicker(false);
+    get(".weather-change").focus();
+  });
+  refreshButton.addEventListener("click", () => loadForecast(true));
 
   async function configChanged() {
     if (!active) return;
     const config = await weatherConfig();
     if (!active) return;
     if (!config.key) {
-      if (city) { message(status, CONFIG_HINT); status.hidden = false; }
-      else message(help, CONFIG_HINT);
+      if (city) {
+        message(status, CONFIG_HINT);
+        status.hidden = false;
+      } else {
+        message(help, CONFIG_HINT);
+      }
       return;
     }
-    if (!city) { message(help, ""); return; }
+    if (!city) {
+      message(help, "");
+      return;
+    }
     message(status, "");
-    loadForecast();
+    loadForecast(false);
   }
-  const onStorage = (changes, area) => {
-    if (area === "local" && API_KEY in changes) configChanged().catch(() => {});
-  };
-  if (globalThis.chrome?.storage?.onChanged) chrome.storage.onChanged.addListener(onStorage);
-  window.addEventListener("daybreak:weather-config", configChanged);
+
+  const unsubscribeStorage = onStorageChange([API_KEY], () => {
+    configChanged().catch(() => {});
+  });
 
   async function init() {
-    const [saved, last, preferred, savedCities] = await Promise.all([CITY_KEY, CACHE_KEY, UNIT_KEY, CITIES_KEY].map(key => read(key).catch(() => null)));
+    const [saved, last, savedCities] = await Promise.all(
+      [CITY_KEY, CACHE_KEY, CITIES_KEY].map(key => getValue(key).catch(() => null))
+    );
     if (!active) return;
-    unit = preferred === "F" ? "F" : "C";
     cities = Array.isArray(savedCities) ? savedCities.filter(validCity) : validCity(saved) ? [saved] : [];
     if (!validCity(saved)) {
       showPicker(true);
@@ -422,15 +496,15 @@ export function mountWeather(root) {
     showPicker(false);
     display();
     if (!navigator.onLine && cached) message(status, "当前离线，显示上次保存的天气。");
-    else if (!cached || Date.now() - cached.fetched >= FRESH_FOR) loadForecast();
+    else if (!cached || Date.now() - cached.fetched >= FRESH_FOR) loadForecast(false);
   }
+
   init();
   return () => {
     active = false;
-    forecastRequest?.abort();
+    forecastToken++;
     searchRequest?.abort();
-    if (globalThis.chrome?.storage?.onChanged) chrome.storage.onChanged.removeListener(onStorage);
-    window.removeEventListener("daybreak:weather-config", configChanged);
+    unsubscribeStorage();
     root.replaceChildren();
     root.classList.remove("weather-widget");
   };
@@ -439,48 +513,54 @@ export function mountWeather(root) {
 /* Compact home readout (city · summary current° · low°~high°) under the date.
    Reuses the cache the settings widget writes; click-through to weather setup. */
 export function mountHomeWeather(root) {
-  let active = true, controller = null;
-  const round = (value, unit) => Math.round(unit === "F" ? value * 9 / 5 + 32 : value);
+  let active = true;
+  let token = 0;
+
   async function snapshot() {
-    const [city, cached, preferred] = await Promise.all([CITY_KEY, CACHE_KEY, UNIT_KEY].map(key => read(key).catch(() => null)));
-    return { city, cached, unit: preferred === "F" ? "F" : "C" };
+    const [city, cached] = await Promise.all([CITY_KEY, CACHE_KEY].map(key => getValue(key).catch(() => null)));
+    return { city, cached };
   }
+
   async function render() {
-    const { city, cached, unit } = await snapshot();
+    const { city, cached } = await snapshot();
     if (!active) return;
-    if (!validCity(city) || !matchesCache(cached, city)) { root.hidden = true; return; }
+    if (!validCity(city) || !matchesCache(cached, city)) {
+      root.hidden = true;
+      writeBoot(BOOT_KEYS.weather, { visible: false, text: "", title: "" });
+      return;
+    }
     root.hidden = false;
-    root.textContent = `${city.name} · ${cached.summary || "天气"} ${round(cached.current, unit)}° · ${round(cached.low, unit)}°~${round(cached.high, unit)}°`;
+    root.textContent = `${city.name} · ${cached.summary || "天气"} ${Math.round(cached.current)}° · ${Math.round(cached.low)}°~${Math.round(cached.high)}°`;
     root.title = [cached.wind, Number.isFinite(cached.humidity) ? "湿度 " + cached.humidity + "%" : "", "点击管理天气"].filter(Boolean).join(" · ");
+    writeBoot(BOOT_KEYS.weather, { visible: true, text: root.textContent, title: root.title });
   }
+
   async function refresh() {
+    const currentToken = ++token;
     await render();
     const { city, cached } = await snapshot();
-    if (!active || !validCity(city) || !navigator.onLine) return;
+    if (!active || currentToken !== token || !validCity(city) || !navigator.onLine) return;
     if (cached && Date.now() - cached.fetched < FRESH_FOR) return;
     const config = await weatherConfig();
-    if (!active || !config.key) return;
-    controller?.abort();
-    controller = new AbortController();
+    if (!active || currentToken !== token || !config.key) return;
     try {
-      const forecast = await amapForecast(city, config, controller);
-      if (!active) return;
-      await write(CACHE_KEY, forecast).catch(() => {});
+      await fetchForecastShared(city, config);
+      if (!active || currentToken !== token) return;
       render();
     } catch { /* keep the cached readout */ }
   }
-  const onStorage = (changes, area) => {
-    if (area === "local" && [CITY_KEY, CACHE_KEY, UNIT_KEY, API_KEY].some(key => key in changes)) refresh();
-  };
-  if (globalThis.chrome?.storage?.onChanged) chrome.storage.onChanged.addListener(onStorage);
+
+  const unsubscribeStorage = onStorageChange([CITY_KEY, CACHE_KEY, API_KEY], () => refresh());
   refresh();
+
   return {
     sync: refresh,
     destroy() {
       active = false;
-      controller?.abort();
-      if (globalThis.chrome?.storage?.onChanged) chrome.storage.onChanged.removeListener(onStorage);
+      token++;
+      unsubscribeStorage();
       root.hidden = true;
+      writeBoot(BOOT_KEYS.weather, { visible: false, text: "", title: "" });
     },
   };
 }

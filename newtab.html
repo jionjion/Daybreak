@@ -4,10 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>Daybreak 晨屿</title>
+  <title>晨屿</title>
   <link rel="icon" href="assets/icon32.png">
+  <link rel="preload" as="font" type="font/woff2" href="assets/fonts/baskervville-latin.woff2" crossorigin>
+  <link rel="preload" as="font" type="font/woff2" href="assets/fonts/instrument-sans-latin.woff2" crossorigin>
   <link rel="stylesheet" href="fonts.css">
   <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="shared/modal.css">
   <link rel="stylesheet" href="widgets/bookmarks.css">
   <link rel="stylesheet" href="widgets/library.css">
   <link rel="stylesheet" href="widgets/weather.css">
@@ -23,7 +26,7 @@
   <a class="skip" href="#main">跳到主要内容</a>
   <main id="main" class="frame main" tabindex="-1">
     <section id="home-view" aria-label="今日">
-      <nav id="quick-strip" aria-label="浏览器快捷栏" hidden></nav>
+      <nav id="quick-strip" aria-label="浏览器快捷栏"></nav>
       <div class="hero" id="hero" data-theme="lake">
         <div class="hero-inner">
           <p class="hero-date" id="hero-date"></p>
@@ -59,7 +62,6 @@
             <p class="settings-drawer-kicker">Daybreak</p>
             <h1 id="settings-title">个人设置</h1>
           </div>
-          <button id="settings-close" class="settings-drawer-close" type="button" aria-label="关闭设置" title="关闭设置"><i data-icon="close"></i></button>
         </header>
         <nav id="settings-index" aria-label="设置分类"></nav>
       </div>

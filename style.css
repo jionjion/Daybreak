@@ -1,5 +1,4 @@
 :root {
-  --topbar-height: 0px;
   font-family: "Instrument Sans", "Segoe UI", "Microsoft YaHei UI", "PingFang SC", sans-serif;
   color: var(--ink);
   background: var(--ground);
@@ -27,28 +26,26 @@ i[data-icon] svg { display: block; width: 1.15em; height: 1.15em; }
 .hero { position: relative; isolation: isolate; overflow: hidden; border-radius: 22px; color: #fffef4; background: #42574d; }
 .hero[data-theme="paper"] { color: #3e4332; }
 .hero-inner { min-height: 336px; padding: 30px clamp(26px, 3.2vw, 48px) 24px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; }
-.hero-date { margin: 0; font-size: 16px; letter-spacing: .05em; line-height: 1.5; font-weight: 550; }
+.hero-date { margin: 0; min-height: 1.5em; font-size: 16px; letter-spacing: .05em; line-height: 1.5; font-weight: 550; }
 .time { display: flex; align-items: baseline; gap: 14px; margin: 2px 0 17px; line-height: 1; }
-.time time { font-family: "Baskervville", Georgia, "Times New Roman", serif; font-weight: 400; letter-spacing: -.045em; font-size: clamp(88px, 8.2vw, 122px); font-variant-numeric: lining-nums tabular-nums; }
+.time time { min-height: 1em; font-family: "Baskervville", Georgia, "Times New Roman", serif; font-weight: 400; letter-spacing: -.045em; font-size: clamp(88px, 8.2vw, 122px); font-variant-numeric: lining-nums tabular-nums; }
 .time span { font: 500 20px Georgia, serif; }
 .search-block { width: min(100%, var(--search-width,640px)); }
-.search-foot { display: flex; align-items: center; }
 .search-form { position: relative; display: flex; align-items: center; gap: 13px; padding: 6px 16px 6px 18px; min-height: 58px; background: var(--surface); border: 1px solid #ffffffb5; border-radius: 10px; }
-.search-form .engine-button { width: auto; height: auto; min-width: 30px; min-height: 30px; padding: 3px; border-radius: 8px; background: transparent; color: var(--subtle); }
+.search-form .engine-button { display: grid; place-items: center; flex: none; border: 0; width: auto; height: auto; min-width: 30px; min-height: 30px; padding: 3px; border-radius: 8px; background: transparent; color: var(--subtle); }
 .search-form .engine-button:hover { background: var(--hover); }
 .search-form .engine-button .engine-icon { width: 24px; height: 24px; }
 .engine-icon { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 6px; overflow: hidden; }
 .engine-icon img { width: 100%; height: 100%; object-fit: contain; }
 .engine-menu { position: absolute; z-index: 30; top: calc(100% + 6px); left: 0; display: flex; flex-wrap: wrap; gap: 4px; width: max-content; max-width: min(100vw - 24px, 420px); padding: 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: 0 8px 24px rgb(36 32 22 / .16); }
-.search-form .engine-option { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 9px; background: transparent; color: inherit; }
+.search-form .engine-option { border: 0; flex: none; width: 42px; height: 42px; display: grid; place-items: center; border-radius: 9px; background: transparent; color: inherit; }
 .search-form .engine-option:hover { background: var(--hover); }
 .search-form .engine-option[aria-checked="true"] { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-line); }
 .search-form input { min-width: 0; flex: 1; height: 44px; padding: 0; border: 0; color: var(--ink); background: transparent; outline: none; font-size: 16px; }
 .search-form:focus-within { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .search-form input::placeholder { color: var(--subtle); }
-.search-form button { display: grid; place-items: center; width: 42px; height: 38px; flex: none; border-radius: var(--btn-radius); border: 0; background: var(--accent); color: var(--accent-contrast); font-size: 18px; font-weight: 600; }
-.search-form button:hover { background: var(--accent-strong); }
-.search-foot { gap: 4px 10px; justify-content: space-between; flex-wrap: wrap; margin-top: 2px; }
+.search-foot { display: flex; align-items: center; min-height: 34px; gap: 4px 10px; justify-content: space-between; flex-wrap: wrap; margin-top: 2px; }
+.search-foot:has(#search-categories[hidden]), body[data-boot-categories="false"] .search-foot { min-height: 0; }
 .search-categories { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
 .search-categories button { border: 0; border-radius: 4px; background: transparent; color: inherit; text-shadow: inherit; }
 .search-categories button[aria-pressed="true"] { text-decoration: underline; text-underline-offset: 4px; font-weight: 650; }
@@ -57,13 +54,14 @@ i[data-icon] svg { display: block; width: 1.15em; height: 1.15em; }
 .search-foot .search-categories button:first-child { padding-left: 2px; }
 .search-foot .search-categories button:hover { text-decoration: underline; text-underline-offset: 4px; }
 .hero:not([data-theme="paper"]) .search-foot { text-shadow: 0 1px 3px #142a20; }
-.search-suggestions { position: fixed; z-index: 100; overflow-y: auto; padding: 4px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 20px rgb(36 32 22 / .16); }
+.search-suggestions { position: absolute; left: 0; right: 0; z-index: 100; overflow-y: auto; padding: 4px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 20px rgb(36 32 22 / .16); }
 .search-suggestions [role="option"] { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 10px 12px; min-height: 38px; border-radius: 6px; cursor: pointer; }
 .search-suggestions [role="option"]:is(:hover,[aria-selected="true"]) { background: var(--accent-soft); }
 .search-suggestions strong, .search-suggestions span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .search-suggestions strong { font-size: 14px; font-weight: 550; }
 .search-suggestions span { flex-shrink: 0; max-width: 48%; color: var(--subtle); font-size: 12px; }
-.bookmarks-band { margin: 20px 0 17px; }
+/* Relative so the folder tabs can straddle the panel's top edge. */
+.bookmarks-band { position: relative; margin: 20px 0 17px; }
 button:disabled { cursor: default; opacity: .55; }
 .page-head { margin: 5px 0 24px; }
 .page-crumb { margin-bottom: 5px; }

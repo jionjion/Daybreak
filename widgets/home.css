@@ -6,6 +6,12 @@ body[data-route="home"] .wall-actions { display:flex; }
 .wall-message { position:absolute; right:18px; top:10px; max-width:50%; padding:5px 9px; background:hsl(var(--wall-hue,160) 35% 12% / .92); border-radius:6px; color:white; font-size:12px; }
 .wall-message:empty { display:none; }
 #quick-strip { margin:0 0 14px; display:grid; gap:7px; }
+#quick-strip:empty { display:none; }
+body[data-route="home"][data-boot-quick-rows="1"] #quick-strip:empty,
+body[data-route="home"][data-boot-quick-rows="2"] #quick-strip:empty { display:grid; gap:7px; }
+body[data-route="home"][data-boot-quick-rows="1"] #quick-strip:empty::before,
+body[data-route="home"][data-boot-quick-rows="2"] #quick-strip:empty::before,
+body[data-route="home"][data-boot-quick-rows="2"] #quick-strip:empty::after { content:""; display:block; height:26px; border-radius:8px; background:hsl(var(--wall-hue,160) 24% 96% / .12); }
 .quick-strip-row { min-width:0; display:flex; align-items:center; gap:14px; white-space:nowrap; overflow-x:auto; scrollbar-width:thin; padding:4px 0; }
 .quick-strip-row a,.quick-strip-row span { color:inherit; font-size:12px; text-decoration:none; max-width:150px; overflow:hidden; text-overflow:ellipsis; flex:none; }
 .quick-strip-row a:hover { text-decoration:underline; }
@@ -20,28 +26,19 @@ body[data-route="home"]:not([data-wall-theme="paper"]) {
   --glass-surface: hsl(var(--wall-hue,160) 32% 12% / .32);
   --glass-deep: hsl(var(--wall-hue,160) 35% 12% / .46);
 }
-body[data-route="home"] .hero { background:transparent; overflow:visible; }
+body[data-route="home"] .hero { z-index:10; background:transparent; overflow:visible; }
 body[data-route="home"] .hero::before,body[data-route="home"] .hero::after { content:none; }
 body[data-route="home"] .hero-inner { padding-inline:0; }
 body[data-route="home"] #quick-strip { color:#fffef4; text-shadow:0 1px 6px hsl(var(--wall-hue,260) 45% 10% / .6); }
 .home-weather { display:inline-flex; width:max-content; max-width:100%; margin:3px 0 0; color:#fffef4; font-size:13px; letter-spacing:.02em; text-decoration:none; text-shadow:0 1px 6px hsl(var(--wall-hue,260) 45% 10% / .6); }
+body[data-boot-weather="true"] .home-weather[hidden] { display:inline-flex !important; visibility:hidden; min-height:20px; }
 .home-weather:hover { text-decoration:underline; text-underline-offset:3px; }
 body[data-wall-theme="paper"] .home-weather { color:#3e4332; text-shadow:0 1px 3px #fffef4aa; }
+body[data-wall-theme="paper"] .search-foot { text-shadow:none; }
 body[data-route="home"]:not([data-wall-theme="paper"]) .hero :is(.hero-date,.time) { text-shadow:0 1px 10px hsl(var(--wall-hue,260) 45% 10% / .5); }
 body[data-route="home"][data-wall-theme="paper"] #quick-strip { color:#3e4332; text-shadow:0 1px 3px #fffef4aa; }
 body[data-wall-theme="paper"] .hero { color:#3e4332; }
 body[data-wall-theme="paper"] .wall-layer::after { background:linear-gradient(180deg,#fffef414,#fffef42e); }
-body[data-route="home"] .bookmarks-band .bookmarks-compact {
-  --bm-ink: #fffef4;
-  --bm-accent: #fffef4;
-  --bm-accent-text: #fffef4;
-  --bm-muted: rgb(255 254 244 / .72);
-  --bm-hover: rgb(255 255 255 / .12);
-  --bm-line: rgb(255 255 255 / .24);
-}
-body[data-route="home"] .bookmarks-band :is(.bookmarks-name, .bookmarks-sheet, .bookmarks-empty) {
-  text-shadow: 0 1px 3px rgb(0 0 0 / .5);
-}
 body[data-route="home"][data-wall-theme="paper"] .bookmarks-band .bookmarks-compact {
   --bm-ink: #3e4332;
   --bm-accent: #3e4332;
@@ -66,7 +63,8 @@ body[data-route="home"]:not([data-wall-theme="paper"]) .bookmarks-band :is(.book
   text-shadow: 0 1px 6px hsl(var(--wall-hue,260) 45% 8% / .65);
 }
 body[data-route="home"]:not([data-home-layout="classic"]):not([data-home-layout="minimal"]) .bookmarks-band {
-  padding:18px clamp(20px,2.2vw,26px);
+  /* Top room hosts the hidden folder tabs with breathing space below them. */
+  padding:30px clamp(20px,2.2vw,26px) 18px;
   border:1px solid var(--glass-border);
   border-radius:16px;
   background:var(--glass-surface);
@@ -100,7 +98,6 @@ body:is([data-home-layout="classic"],[data-home-layout="minimal"])[data-route="h
   & .time { margin-bottom:16px; }
   & .time time { font-size:78px; }
   & #quick-strip { color:white; }
-  & .hero-edit { background:#1c332d8c; top:5px; bottom:auto; }
 }
 body[data-home-layout="minimal"][data-route="home"] {
   & .hero-inner { min-height:calc(78vh - 80px); }
@@ -109,7 +106,15 @@ body[data-home-layout="minimal"][data-route="home"] {
 }
 body[data-home-layout="classic"][data-route="home"] {
   & #system-shortcuts { display:flex; justify-content:center; flex-wrap:wrap; gap:16px 20px; margin:25px auto; max-width:950px; }
-  & .bookmarks-band { max-width:950px; margin-inline:auto; border-radius:16px; background:var(--glass-surface); -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur); box-shadow:var(--glass-shadow); padding:16px 22px; }
+  & .bookmarks-band { max-width:950px; margin-inline:auto; border-radius:16px; background:var(--glass-surface); -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur); box-shadow:var(--glass-shadow); padding:30px 22px 16px; }
+}
+/* Without a switcher the extra top room would just be empty; likewise on
+   touch screens, where the tabs sit in normal flow instead of floating. */
+body[data-route="home"] .bookmarks-band:has(.bookmarks-sheets[hidden]),
+body[data-route="home"][data-boot-bookmarks-tabs="false"] .bookmarks-band:not(:has(.bookmarks-sheets)) { padding-top:18px; }
+body[data-route="home"] #bookmarks-compact:empty { min-height:var(--boot-bookmarks-height,86px); }
+@media (hover: none) {
+  body[data-route="home"] .bookmarks-band:has(.bookmarks-sheets) { padding-top:18px; }
 }
 .system-tile { position:relative; display:grid; gap:7px; justify-items:center; align-content:start; width:max(68px,var(--daybreak-icon-size,54px)); color:white; background:transparent; border:0; padding:0; text-decoration:none; cursor:pointer; }
 .system-glyph { display:grid; place-items:center; width:var(--daybreak-icon-size,54px); height:var(--daybreak-icon-size,54px); border-radius:var(--daybreak-icon-radius,15px); opacity:var(--daybreak-icon-opacity,1); background:var(--accent-soft); color:var(--accent-text); }
@@ -126,5 +131,5 @@ body[data-route="home"]:not([data-wall-theme="paper"]) .search-form { background
 #home-view {zoom:var(--home-zoom,1);}
 @media (max-width:680px) {
   body[data-home-layout="classic"][data-route="home"] #system-shortcuts { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,max(72px,var(--daybreak-icon-size,54px))),1fr)); justify-items:center; gap:16px 3px; }
-  body[data-home-layout="classic"][data-route="home"] .bookmarks-band { padding:14px; }
+  body[data-home-layout="classic"][data-route="home"] .bookmarks-band { padding:26px 14px 14px; }
 }

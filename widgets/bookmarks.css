@@ -7,28 +7,55 @@
   --bm-accent-text: var(--accent-text, #2f2f2c);
   color: var(--bm-ink);
 }
-/* Pill switcher instead of spreadsheet tabs: fixed 34px strip, 28px pills,
-   hidden scrollbar, no baseline rule. */
+/* The group switcher hides in the panel's top padding and fades in when the
+   band is hovered (or focus enters it), so at rest the band keeps its full
+   bookmark height. Touch screens keep it visible — see the hover: none
+   fallback below. */
 .bookmarks-sheets {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: clamp(20px, 2.2vw, 26px);
+  right: clamp(20px, 2.2vw, 26px);
   display: flex;
   align-items: center;
   gap: 4px;
-  height: 34px;
-  margin: 0 0 12px;
-  padding: 0;
+  height: 24px;
   overflow-x: auto;
   overflow-y: hidden;
-  border-bottom: 0;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity .16s ease, transform .16s ease;
   scrollbar-width: none;
 }
+.bookmarks-band:hover .bookmarks-sheets,
+.bookmarks-band:focus-within .bookmarks-sheets {
+  opacity: 1;
+  transform: none;
+}
 .bookmarks-sheets::-webkit-scrollbar { display: none; }
+/* Fade the row on whichever side can still scroll (data-edges is set by
+   syncTabsEdges); an abrupt cut mid-pill looks broken on a floating strip. */
+.bookmarks-sheets[data-edges="right"] {
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+}
+.bookmarks-sheets[data-edges="left"] {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 28px);
+  mask-image: linear-gradient(90deg, transparent, #000 28px);
+}
+.bookmarks-sheets[data-edges="both"] {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+}
 .bookmarks-sheet {
   flex: none;
   display: inline-flex;
   align-items: center;
-  height: 28px;
+  height: 24px;
   max-width: 170px;
-  padding: 0 12px;
+  padding: 0 10px;
   overflow: hidden;
   border: 0;
   border-radius: 999px;
@@ -41,6 +68,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   cursor: pointer;
+  pointer-events: auto;
 }
 .bookmarks-sheet:hover { background: var(--bm-hover); color: var(--bm-ink); }
 .bookmarks-sheet[aria-selected="true"] {
@@ -111,7 +139,52 @@
   font-size: 13px;
   line-height: 1.4;
 }
-.bookmarks-browser-icon { display: block; width: 100%; height: 100%; object-fit: contain; }
+.bookmarks-browser-icon { display: block; width: 100%; height: 100%; object-fit: contain; animation: bm-icon-in .12s ease-out; }
+.bookmarks-list[data-loading="true"] {
+  min-height: var(--boot-bookmarks-height, 86px);
+  overflow: hidden;
+}
+.bookmarks-skeleton-tile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 6px 10px;
+  border-radius: 10px;
+}
+.bookmarks-skeleton-icon,
+.bookmarks-skeleton-label {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--bm-ink) 11%, transparent) 25%,
+    color-mix(in srgb, var(--bm-ink) 20%, transparent) 50%,
+    color-mix(in srgb, var(--bm-ink) 11%, transparent) 75%
+  );
+  background-size: 200% 100%;
+  animation: bm-shimmer 1.4s ease-in-out infinite;
+}
+.bookmarks-skeleton-icon {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+}
+.bookmarks-skeleton-label {
+  height: 12px;
+  border-radius: 6px;
+  width: 64%;
+}
+.bookmarks-skeleton-tile:nth-child(3n+1) .bookmarks-skeleton-label { width: 54%; }
+.bookmarks-skeleton-tile:nth-child(3n+2) .bookmarks-skeleton-label { width: 76%; }
+.bookmarks-skeleton-tile:nth-child(4n) .bookmarks-skeleton-label { width: 46%; }
+@keyframes bm-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@keyframes bm-icon-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 /* Favicons keep their native shape on the light frost: a chip behind them
    shows through transparent margins as a white halo ("rough edge"). */
 .bookmarks-compact .bookmarks-monogram:has(.bookmarks-browser-icon) { background: transparent; border-radius: 0; overflow: visible; }
@@ -124,6 +197,23 @@
 .bookmarks-list:has(> .bookmarks-empty:not([hidden])) { display: grid; align-content: center; }
 .bookmarks-empty { margin: 0; padding: 8px 0 12px; color: var(--bm-muted); font-size: 13px; line-height: 1.7; }
 .bookmarks-compact :focus-visible { outline: 2px solid var(--bm-accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .bookmarks-sheets { transition: none; }
+  .bookmarks-skeleton-icon, .bookmarks-skeleton-label, .bookmarks-browser-icon { animation: none; }
+}
+/* No hover to peek with: keep the switcher in normal flow above the grid. */
+@media (hover: none) {
+  .bookmarks-sheets {
+    position: static;
+    height: 34px;
+    margin: 0 0 12px;
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+    transition: none;
+  }
+  .bookmarks-sheet { height: 28px; padding: 0 12px; }
+}
 @media (max-width: 640px) {
   .bookmarks-compact .bookmarks-grid { gap: 2px 6px; }
   .bookmarks-empty { padding-block: 4px 12px; }

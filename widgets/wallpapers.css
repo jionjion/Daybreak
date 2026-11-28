@@ -21,8 +21,10 @@
   background: var(--surface);
 }
 .wallpaper-panel select { max-width: min(220px,100%); }
-.wallpaper-panel button { border: 0; background: var(--accent-soft); color: var(--accent-text); font-weight: 600; cursor: pointer; }
+.wallpaper-panel button { padding: 7px 14px; border: 0; background: var(--accent-soft); color: var(--accent-text); font-weight: 600; cursor: pointer; }
 .wallpaper-panel button:enabled:hover { background: color-mix(in srgb,var(--accent) 18%,var(--surface)); }
+.wallpaper-panel button.settings-action-danger { background: var(--danger); color: #fff; }
+.wallpaper-panel button.settings-action-danger:enabled:hover { background: color-mix(in srgb, var(--danger) 82%, #000); }
 .wallpaper-panel button:disabled { cursor: default; opacity: .65; }
 .wallpaper-grid {
   display: grid;
@@ -50,18 +52,6 @@
 .wallpaper-thumbnail[data-theme="lake"] { background: #d6dfd7 url("../assets/lake.webp") center / cover; }
 .wallpaper-thumbnail[data-theme="pine"] { background: #3c5140; }
 .wallpaper-thumbnail[data-theme="paper"] { background: #ddd5bf; }
-.wallpaper-panel .wallpaper-remove {
-  position: absolute;
-  top: 6px; right: 6px;
-  padding: 0;
-  width: 30px; min-height: 30px;
-  border: 0;
-  border-radius: 50%;
-  background: var(--surface);
-  color: var(--ink);
-  font-size: 19px;
-  line-height: 1;
-}
 .wallpaper-controls {
   margin: 0 0 12px;
   padding-top: 16px;
@@ -69,6 +59,88 @@
 }
 .wallpaper-bing { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--setting-rule,var(--line)); }
 .wallpaper-bing label { min-height: 40px; cursor: pointer; }
+/* Rolling seven-day Bing archive: a row of small pickable thumbnails. */
+.wallpaper-bing-days { flex-basis: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; margin-top: 4px; }
+.wallpaper-bing-card { position: relative; min-width: 0; }
+.wallpaper-panel .wallpaper-bing-day {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--ground);
+  cursor: pointer;
+}
+.wallpaper-panel .wallpaper-bing-day img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.wallpaper-bing .wallpaper-bing-day:enabled:hover { background: var(--ground); border-color: var(--line); }
+.wallpaper-panel .wallpaper-bing-day[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+/* Hover triangle in the corner; clicking it opens a one-item delete menu. */
+.wallpaper-menu-wrap { position: absolute; z-index: 3; top: 6px; right: 6px; }
+.wallpaper-bing-card .wallpaper-menu-wrap { top: 3px; right: 3px; }
+.wallpaper-panel .wallpaper-menu-trigger {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  min-height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(20 22 18 / .55);
+  color: #fff;
+  opacity: 0;
+  pointer-events: none;
+  cursor: pointer;
+  transition: opacity .15s ease, background-color .15s ease;
+}
+.wallpaper-panel .wallpaper-menu-trigger::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+}
+.wallpaper-card:hover .wallpaper-menu-trigger,
+.wallpaper-bing-card:hover .wallpaper-menu-trigger,
+.wallpaper-menu-wrap:focus-within .wallpaper-menu-trigger { opacity: 1; pointer-events: auto; }
+.wallpaper-panel .wallpaper-menu-trigger:enabled:hover { background: rgb(20 22 18 / .78); }
+.wallpaper-bing-card .wallpaper-menu-trigger { width: 20px; height: 20px; min-height: 20px; }
+.wallpaper-bing-card .wallpaper-menu-trigger::before { width: 5px; height: 5px; border-right-width: 1.25px; border-bottom-width: 1.25px; }
+.wallpaper-menu {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 96px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgb(36 32 22 / .18);
+}
+.wallpaper-menu[hidden] { display: none; }
+.wallpaper-menu-up { top: auto; bottom: calc(100% + 4px); }
+.wallpaper-panel .wallpaper-menu-delete {
+  display: block;
+  width: 100%;
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.wallpaper-panel .wallpaper-menu-delete:enabled:hover { background: color-mix(in srgb, var(--danger) 10%, var(--surface)); }
+@media (hover: none) {
+  .wallpaper-panel .wallpaper-menu-trigger { opacity: 1; pointer-events: auto; }
+}
 .wallpaper-bing input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
 .wallpaper-credit, .wallpaper-status { color: var(--subtle); font-size: 13px; overflow-wrap: anywhere; }
 .wallpaper-credit { flex-basis: 100%; margin: 0; }
@@ -83,5 +155,5 @@
   .wallpaper-controls { display: grid; gap: 8px; }
   .wallpaper-controls label { justify-content: space-between; }
   .wallpaper-controls select { width: 50%; }
-  .wallpaper-panel .wallpaper-remove { width: 34px; min-height: 34px; }
+  .wallpaper-card .wallpaper-menu-trigger { width: 30px; height: 30px; min-height: 30px; }
 }

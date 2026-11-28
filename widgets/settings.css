@@ -40,6 +40,8 @@ body[data-settings-open="true"] .settings-scrim {
 #settings-view {
   --setting-rule: color-mix(in srgb, var(--line) 88%, transparent);
   --setting-field-border: color-mix(in srgb, var(--ink) 24%, var(--surface));
+  /* One width for every right-hand control, so rows share the same column. */
+  --setting-control: 200px;
   position: fixed;
   z-index: 61;
   inset: 0 0 0 auto;
@@ -56,6 +58,9 @@ body[data-settings-open="true"] .settings-scrim {
   pointer-events: none;
   transition: transform .4s cubic-bezier(.3, .7, .2, 1), visibility 0s .4s;
 }
+/* The drawer itself takes focus on open (tabindex -1); a ring around the whole
+   panel would read as a glitch. */
+#settings-view:focus-visible { outline: none; }
 body[data-settings-open="true"] #settings-view {
   transform: none;
   visibility: visible;
@@ -76,19 +81,6 @@ body[data-settings-open="true"] #settings-view {
 }
 .settings-drawer-kicker { margin: 0 0 3px; color: var(--subtle); font-size: 11px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; }
 .settings-drawer-head h1 { margin: 0; font-size: 25px; font-weight: 640; line-height: 1.3; letter-spacing: -.03em; }
-.settings-drawer-close {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  margin-top: 2px;
-  border: 1px solid color-mix(in srgb, var(--ink) 13%, transparent);
-  border-radius: 50%;
-  background: var(--surface);
-  color: var(--ink);
-}
-.settings-drawer-close:hover { background: var(--hover); }
 #settings-view #settings-index {
   flex: none;
   display: flex;
@@ -194,6 +186,48 @@ body[data-settings-open="true"] #settings-view {
   font-size: 14px;
 }
 .settings-field::placeholder { color: var(--subtle); opacity: 1; }
+/* Windows renders native select popups itself, so their options can't match the
+   drawer. Customizable select paints the list in-page with the app's tokens;
+   Chromium without base-select keeps the native popup. */
+@supports (appearance: base-select) {
+  #settings-view select,
+  #settings-view select::picker(select) { appearance: base-select; }
+  /* Swap the UA's filled triangle for the app's line chevron, keeping the
+   native icon slot so the browser centers and aligns it. */
+  #settings-view select::picker-icon {
+    content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%236e6e69' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 4.5 3 3 3-3'/%3E%3C/svg%3E");
+    margin-left: 8px;
+  }
+  #settings-view select::picker(select) {
+    /* Match the field width and keep long engine lists scrollable. */
+    min-inline-size: anchor-size(width);
+    max-height: min(320px, 60vh);
+    margin-block: 6px;
+    padding: 4px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 10px 28px rgb(36 32 22 / .18);
+  }
+  #settings-view select option {
+    padding: 7px 10px;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--ink);
+    font-size: 14px;
+  }
+  #settings-view select option:is(:hover, :focus) { background: var(--hover); }
+  #settings-view select option:checked {
+    background: var(--accent-soft);
+    color: var(--accent-text);
+    font-weight: 550;
+  }
+  #settings-view select option::checkmark { display: none; }
+}
 .settings-switch {
   position: relative;
   flex: none;
@@ -324,6 +358,8 @@ body[data-settings-open="true"] #settings-view {
   background: color-mix(in srgb, var(--accent) 18%, var(--surface));
 }
 .settings-action-primary:hover { background: var(--accent-strong); }
+.settings-action-danger { background: var(--danger); color: #fff; }
+.settings-action-danger:hover { background: color-mix(in srgb, var(--danger) 82%, #000); }
 .settings-action:disabled { opacity: .62; cursor: default; }
 .settings-replace { margin-bottom: 8px; }
 .settings-custom-list { margin: 8px 0; }
@@ -340,29 +376,55 @@ body[data-settings-open="true"] #settings-view {
 .settings-engine-form { display: grid; gap: 12px; }
 .settings-engine-form label { display: grid; grid-template-columns: minmax(80px, 1fr) 3fr; align-items: center; gap: 8px; font-size: 14px; }
 .settings-engine-form .settings-field { width: 100%; }
-.settings-engine-form small, .settings-help {
+.settings-engine-form small {
   color: var(--subtle);
   font-size: 14px;
   line-height: 1.65;
   overflow-wrap: anywhere;
 }
-.settings-help { margin: 0 0 12px; }
 .settings-engine-error { color: var(--danger); margin: 0; font-size: 14px; }
-.settings-slider { display: flex; align-items: center; gap: 8px; width: min(52%, 260px); }
-.settings-slider input { width: 100%; min-width: 40px; accent-color: var(--accent); }
+.settings-slider { display: flex; align-items: center; gap: 8px; width: min(56%, var(--setting-control)); }
+.settings-slider input { flex: 1; min-width: 40px; }
 .settings-slider output { min-width: 3.2em; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--subtle); }
 #layout-options, #more-preferences { margin-top: 0; }
-.layout-control { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; max-width: 56%; }
-.layout-control .settings-field { width: auto; min-width: min(120px,100%); max-width: 100%; }
-.layout-control input[type="range"] { max-width: min(160px,24vw); accent-color: var(--accent); }
+.layout-control { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; width: min(56%, var(--setting-control)); }
+.layout-control .settings-field { width: 100%; min-width: 0; max-width: 100%; }
+/* One slider style for both cards: a 20px hit area and a 16px thumb scale with
+   the 40px fields instead of the OS default. */
+.settings-row input[type="range"] {
+  flex: 1;
+  min-width: 40px;
+  height: 20px;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+.settings-row input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--ink) 18%, transparent);
+}
+.settings-row input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 1px 2px rgb(32 28 20 / 18%);
+}
+.settings-row input[type="range"]:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .layout-control output { min-width: 3.3em; color: var(--subtle); text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
-.layout-appearance { margin-top: 8px; border-top: 1px solid var(--setting-rule,var(--line)); }
-.layout-appearance summary { padding: 12px 0; color: var(--accent-text); cursor: pointer; font-size: 14px; font-weight: 550; }
+.layout-appearance { margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--setting-rule,var(--line)); }
+.layout-appearance h3 { margin: 0 0 4px; color: var(--subtle); font-size: 13px; font-weight: 550; letter-spacing: .02em; }
 .settings-row input[type="color"] { width: 52px; height: 32px; padding: 2px; border: 1px solid var(--setting-field-border, var(--line)); border-radius: 6px; background: var(--surface); }
 .settings-status { margin: 0; color: var(--subtle); font-size: 13px; line-height: 1.6; }
 .settings-weather-status { margin: 10px 0 0; color: var(--subtle); font-size: 13px; line-height: 1.6; }
 .settings-weather-status:empty { display: none; }
-.settings-help a { text-underline-offset: 3px; }
 .settings-panel > .settings-status:not(:empty) { padding: 0 2px 16px; }
 .settings-status:empty, .settings-custom-list:empty, .settings-panel [hidden] { display: none !important; }
 #settings-view :focus-visible { outline: 2px solid var(--accent-text); outline-offset: 3px; }

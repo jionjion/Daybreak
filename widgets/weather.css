@@ -13,31 +13,33 @@
 .weather-widget :is(button, input, select) { font-family: inherit; }
 .weather-widget button:disabled { cursor: progress; opacity: .55; }
 .weather-widget :is(input, button, a, select, summary):focus-visible { outline: 2px solid var(--weather-accent-text); outline-offset: 2px; }
-.weather-widget :is(.weather-location, .weather-meta, .weather-form, .weather-reading, .weather-unit-label) {
+.weather-widget :is(.weather-location, .weather-meta, .weather-form, .weather-reading) {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.weather-widget :is(.weather-location, .weather-meta, .weather-unit-label) { justify-content: space-between; }
+.weather-widget :is(.weather-location, .weather-meta) { justify-content: space-between; }
 .weather-widget .weather-location strong { min-width: 0; font-size: 15px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
 .weather-widget :is(.weather-change, .weather-refresh, .weather-cancel) {
-  min-height: 32px;
-  padding: 4px 6px;
+  min-height: var(--btn-height);
+  padding: 0 14px;
   border: 0;
-  border-radius: 6px;
-  background: transparent;
+  border-radius: var(--btn-radius);
+  background: var(--widget-accent-soft, var(--accent-soft));
   color: var(--weather-accent-text);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
 }
-.weather-widget :is(.weather-change, .weather-refresh, .weather-cancel):hover { background: var(--widget-hover, var(--hover)); }
+.weather-widget :is(.weather-change, .weather-refresh, .weather-cancel):hover {
+  background: color-mix(in srgb, var(--weather-accent) 18%, var(--surface));
+}
 .weather-widget .weather-reading { flex-wrap: wrap; gap: 12px; margin: 8px 0 12px; }
 .weather-widget .weather-temperature { font-size: clamp(32px, 3.2vw, 44px); font-weight: 500; line-height: 1.12; font-variant-numeric: tabular-nums; }
 .weather-widget .weather-reading span { display: block; }
 .weather-widget .weather-condition { font-size: 14px; line-height: 1.6; font-weight: 600; }
-.weather-widget :is(.weather-range, .weather-stamp, .weather-help, .weather-status, .weather-credit, .weather-atmosphere) {
+.weather-widget :is(.weather-range, .weather-stamp, .weather-help, .weather-status, .weather-atmosphere) {
   color: var(--weather-muted);
   font-size: 12px;
   line-height: 1.65;
@@ -64,12 +66,12 @@
   padding: 0 14px;
   border: 0;
   border-radius: var(--btn-radius);
-  background: var(--widget-accent-soft, var(--accent-soft));
-  color: var(--weather-accent-text);
+  background: var(--weather-accent);
+  color: var(--accent-contrast, #fff);
   font-size: 14px;
   font-weight: 600;
 }
-.weather-widget .weather-form button:hover { background: color-mix(in srgb, var(--weather-accent) 22%, transparent); }
+.weather-widget .weather-form button:hover { background: var(--accent-strong, color-mix(in srgb, var(--weather-accent) 82%, #000)); }
 .weather-widget .weather-results { list-style: none; margin: 6px 0 0; padding: 0; max-height: 220px; overflow: auto; }
 .weather-widget .weather-results button {
   display: flex;
@@ -90,28 +92,46 @@
 .weather-widget .weather-results button:hover { background: var(--widget-hover, var(--hover)); }
 .weather-widget .weather-results span { color: var(--weather-muted); font-size: 12px; text-align: end; }
 .weather-widget .weather-help, .weather-widget .weather-status { margin: 8px 0 0; }
-.weather-widget .weather-credit { margin-top: 6px; }
-.weather-widget .weather-credit a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 .weather-widget .weather-saved { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
 .weather-widget .weather-saved span { display: inline-flex; align-items: center; max-width: 100%; border: 1px solid var(--weather-line); border-radius: 7px; background: var(--weather-field); }
 .weather-widget .weather-saved button { min-height: 32px; border: 0; background: transparent; color: var(--weather-accent-text); font-size: 13px; cursor: pointer; }
 .weather-widget .weather-saved button:first-child { padding: 4px 8px; min-width: 0; overflow-wrap: anywhere; }
 .weather-widget .weather-saved button:not(:first-child) { padding: 4px 6px; min-width: 28px; }
-.weather-widget .weather-unit-label { margin: 6px 0 8px; color: var(--weather-muted); font-size: 13px; }
-.weather-widget .weather-unit { height: 36px; min-width: 0; padding: 4px 7px; border: 1px solid var(--weather-line); border-radius: 7px; background: var(--weather-field); color: var(--weather-ink); font-size: 13px; }
-.weather-widget .weather-days { margin: 4px 0 0; padding: 0; list-style: none; }
+/* Always-visible forecast as a compact row of day cards. */
+.weather-widget .weather-forecast { margin: 10px 0 2px; }
+.weather-widget .weather-forecast-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--weather-muted);
+  font-size: 12px;
+}
+.weather-widget .weather-days {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
 .weather-widget .weather-days li {
   display: grid;
-  grid-template-columns: minmax(48px, .75fr) minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: baseline;
-  padding: 7px 0;
-  border-bottom: 1px solid var(--widget-rule, #ebe8df);
+  gap: 3px;
+  padding: 9px 10px;
+  border: 1px solid var(--widget-rule, #ebe8df);
+  border-radius: 10px;
+  background: var(--weather-field);
+  color: var(--weather-ink);
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.45;
+  text-align: center;
   overflow-wrap: anywhere;
   font-variant-numeric: tabular-nums;
 }
-.weather-widget .weather-days li:last-child { border-bottom: 0; }
+.weather-widget .weather-day-name { color: var(--weather-muted); font-size: 12px; }
+.weather-widget .weather-day-summary { font-weight: 600; }
+.weather-widget .weather-day-range { color: var(--weather-muted); font-size: 12px; }
 .weather-widget .weather-atmosphere { margin: 4px 0; }
 .weather-widget .weather-atmosphere:empty { display: none; }

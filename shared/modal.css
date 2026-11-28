@@ -1,0 +1,54 @@
+.daybreak-dialog {
+  box-sizing: border-box;
+  width: min(410px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface, #ffffff);
+  color: var(--ink, #242423);
+  box-shadow: 0 15px 70px rgb(30 28 20 / .16);
+}
+.daybreak-dialog::backdrop { background: rgb(30 28 20 / 38%); }
+.daybreak-form, .daybreak-fields { display: grid; gap: 13px; min-width: 0; margin: 0; }
+.daybreak-dialog-title { margin: 0; font-size: 20px; }
+.daybreak-label { display: grid; min-width: 0; gap: 5px; color: var(--ink, #242423); font-size: 13px; }
+.daybreak-field, .daybreak-button, .daybreak-primary, .daybreak-danger {
+  box-sizing: border-box;
+  min-height: var(--btn-height, 38px);
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--btn-radius, 10px);
+  color: var(--ink, #242423);
+  background: var(--surface, #ffffff);
+  font: inherit;
+  font-size: 13px;
+}
+.daybreak-label .daybreak-field { width: 100%; }
+.daybreak-button, .daybreak-primary, .daybreak-danger {
+  border: 0;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.daybreak-button { background: var(--accent-soft); color: var(--accent-text); }
+.daybreak-primary { background: var(--accent); color: var(--accent-contrast); }
+.daybreak-danger { background: var(--danger); color: #ffffff; }
+.daybreak-button:hover { background: color-mix(in srgb, var(--accent) 18%, var(--surface)); }
+.daybreak-primary:hover { background: var(--accent-strong); }
+.daybreak-danger:hover { background: color-mix(in srgb, var(--danger) 82%, #000); }
+.daybreak-dialog button:disabled { opacity: .55; cursor: default; }
+.daybreak-dialog button:focus-visible, .daybreak-field:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+.daybreak-confirm-title, .daybreak-confirm-url { overflow-wrap: anywhere; }
+.daybreak-confirm-url, .daybreak-confirm-message, .daybreak-error {
+  margin: 0;
+  color: var(--subtle, #6e6e69);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.daybreak-error { color: var(--danger); }
+.daybreak-error:empty { display: none; }
+.daybreak-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }

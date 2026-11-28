@@ -1,22 +1,10 @@
+import { el, webAddress } from "../shared/dom.js";
+import { createModal } from "../shared/modal.js";
+import { getValue, onStorageChange } from "../shared/storage.js";
+
 const pageSize = 60;
 
-function element(tag, className, text) {
-  const node = document.createElement(tag);
-  node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
-
-function webAddress(value) {
-  try {
-    const address = new URL(value);
-    return ["https:", "http:"].includes(address.protocol) ? address : null;
-  } catch {
-    return null;
-  }
-}
-
-function bookmarkLibrary(tree) {
+export function bookmarkLibrary(tree) {
   const rows = [];
   const folders = [];
   function visit(nodes, path, ancestors, inheritedReadOnly) {
@@ -26,17 +14,30 @@ function bookmarkLibrary(tree) {
         const title = item.title || "未命名文件夹";
         const group = [...path, title];
         folders.push({
-          id: item.id, title, path: group.join(" / "), writable: !readOnly, nonEmpty: Boolean(item.children?.length),
-          mutable: !readOnly && ancestors.length > 0 && !item.folderType
+          id: item.id,
+          title,
+          path: group.join(" / "),
+          writable: !readOnly,
+          nonEmpty: Boolean(item.children?.length),
+          mutable: !readOnly && ancestors.length > 0 && !item.folderType,
         });
         visit(item.children || [], group, [...ancestors, item.id], readOnly);
         continue;
       }
       const url = webAddress(item.url);
-      if (url) rows.push({
-        id: item.id, parentId: item.parentId, title: item.title || url.hostname,
-        sourceTitle: item.title, sourceUrl: item.url, url, group: path.join(" / ") || "书签", ancestors, mutable: !readOnly
-      });
+      if (url) {
+        rows.push({
+          id: item.id,
+          parentId: item.parentId,
+          title: item.title || url.hostname,
+          sourceTitle: item.title,
+          sourceUrl: item.url,
+          url,
+          group: path.join(" / ") || "书签",
+          ancestors,
+          mutable: !readOnly,
+        });
+      }
     }
   }
   for (const root of tree) visit(root.children || [], [], [], Boolean(root.unmodifiable));
@@ -44,89 +45,28 @@ function bookmarkLibrary(tree) {
 }
 
 function linkRow(item) {
-  const row = element("a", "library-row");
+  const row = el("a", "library-row");
   row.href = item.url.href;
   row.target = "_blank";
   row.rel = "noopener noreferrer";
   row.title = item.url.href;
   const host = item.url.hostname.replace(/^www\./i, "");
-  const mark = element("span", "library-mark", host.slice(0, 1).toUpperCase());
+  const mark = el("span", "library-mark", host.slice(0, 1).toUpperCase());
   mark.setAttribute("aria-hidden", "true");
-  const body = element("span", "library-link-body");
-  body.append(element("strong", "library-link-title", item.title), element("span", "library-url", host));
+  const body = el("span", "library-link-body");
+  body.append(el("strong", "library-link-title", item.title), el("span", "library-url", host));
   row.append(mark, body);
-  const arrow = element("span", "library-arrow", "↗");
+  const arrow = el("span", "library-arrow", "↗");
   arrow.setAttribute("aria-hidden", "true");
   row.append(arrow);
   return row;
 }
 
 function button(label, className, onClick) {
-  const node = element("button", className, label);
+  const node = el("button", className, label);
   node.type = "button";
   node.addEventListener("click", onClick);
   return node;
-}
-
-function modal(panel, title, submitLabel, destructive = false) {
-  const dialog = element("dialog", "library-dialog");
-  dialog.setAttribute("aria-label", title);
-  const form = element("form", "library-form");
-  form.noValidate = true;
-  const content = element("div", "library-fields");
-  const error = element("p", "library-error");
-  error.setAttribute("role", "alert");
-  const buttons = element("div", "library-actions");
-  const cancel = button("取消", "library-button", () => dialog.close());
-  const submit = element("button", destructive ? "library-danger" : "library-primary", submitLabel);
-  submit.type = "submit";
-  buttons.append(cancel, submit);
-  form.append(element("h3", "library-dialog-title", title), content, error, buttons);
-  dialog.append(form);
-  panel.append(dialog);
-  dialog.addEventListener("close", () => dialog.remove(), { once: true });
-  dialog.addEventListener("cancel", event => { if (submit.disabled) event.preventDefault(); });
-  function labeled(label, node) {
-    const wrapper = element("label", "library-label", label);
-    wrapper.append(node);
-    content.append(wrapper);
-    return node;
-  }
-  return {
-    content,
-    text(label, value = "") {
-      const node = element("input", "library-field");
-      node.required = true;
-      node.value = value;
-      return labeled(label, node);
-    },
-    folder(choices, selected) {
-      const node = element("select", "library-field");
-      node.required = true;
-      node.append(...choices.map(item => new Option(item.path, item.id)));
-      if (choices.some(item => item.id === selected)) node.value = selected;
-      return labeled("所在文件夹", node);
-    },
-    open(onSubmit) {
-      form.addEventListener("submit", async event => {
-        event.preventDefault();
-        if (submit.disabled) return;
-        submit.disabled = cancel.disabled = true;
-        error.textContent = "";
-        try {
-          await onSubmit();
-          dialog.close();
-        } catch (problem) {
-          error.textContent = problem.message || "操作失败，请重试。";
-        } finally {
-          submit.disabled = cancel.disabled = false;
-        }
-      });
-      if (destructive) cancel.autofocus = true;
-      dialog.showModal();
-      if (destructive) cancel.focus();
-    }
-  };
 }
 
 async function editBookmark(api, record, values) {
@@ -155,32 +95,32 @@ async function editBookmark(api, record, values) {
 
 export function mountLibrary(root) {
   const api = globalThis.chrome?.bookmarks;
-  const panel = element("div", "library-panel");
-  const bar = element("div", "library-toolbar");
-  const field = element("label", "library-search");
-  const glass = element("span", "library-glass");
+  const panel = el("div", "library-panel");
+  const bar = el("div", "library-toolbar");
+  const field = el("label", "library-search");
+  const glass = el("span", "library-glass");
   glass.setAttribute("aria-hidden", "true");
-  const input = element("input", "library-input");
+  const input = el("input", "library-input");
   input.type = "search";
   input.placeholder = "搜索书签名称、网址或文件夹";
   input.setAttribute("aria-label", input.placeholder);
   field.append(glass, input);
-  const status = element("span", "library-status", "正在读取…");
+  const status = el("span", "library-status", "正在读取…");
   status.setAttribute("role", "status");
   bar.append(field, status);
-  const list = element("div", "library-list");
-  const folderBar = element("div", "library-folder-bar");
+  const list = el("div", "library-list");
+  const folderBar = el("div", "library-folder-bar");
   folderBar.hidden = true;
-  const scope = element("select", "library-field");
+  const scope = el("select", "library-field");
   scope.setAttribute("aria-label", "浏览书签文件夹");
   const add = button("新建书签", "library-primary", () => bookmarkForm());
   const newFolder = button("新建文件夹", "library-button", () => folderForm());
   const rename = button("重命名文件夹", "library-button", () => folderForm(selectedFolder()));
   const removeFolder = button("删除文件夹", "library-text-button", () => confirmRemove(selectedFolder(), true));
   folderBar.append(scope, add, newFolder, rename, removeFolder);
-  const feedback = element("p", "library-feedback");
+  const feedback = el("p", "library-feedback");
   feedback.setAttribute("role", "status");
-  const more = element("button", "library-more", "显示更多");
+  const more = el("button", "library-more", "显示更多");
   more.type = "button";
   more.hidden = true;
   panel.append(bar);
@@ -197,16 +137,20 @@ export function mountLibrary(root) {
   let active = true;
   const listeners = [];
   const targetKey = "daybreak.layout.bookmarksNewTab";
-  let openNew = true;
+  let openNew = false;
+
   const changeTarget = value => {
-    openNew = value !== false;
-    for (const a of list.querySelectorAll(".library-row")) a.target = openNew ? "_blank" : "_self";
+    openNew = value === true;
+    for (const a of list.querySelectorAll(".library-row")) {
+      a.target = openNew ? "_blank" : "_self";
+    }
   };
-  const preferenceChanged = (changes, area) => {
-    if (area === "local" && targetKey in changes) changeTarget(changes[targetKey].newValue);
-  };
-  globalThis.chrome?.storage?.onChanged.addListener(preferenceChanged);
-  globalThis.chrome?.storage?.local.get(targetKey).then(data => { if (active) changeTarget(data[targetKey]); }).catch(() => {});
+  const unsubscribeStorage = onStorageChange([targetKey], changes => {
+    if (targetKey in changes) changeTarget(changes[targetKey].newValue);
+  });
+  getValue(targetKey).then(value => {
+    if (active) changeTarget(value);
+  }).catch(() => {});
 
   function selectedFolder() {
     return folders.find(folder => folder.id === scope.value);
@@ -229,19 +173,18 @@ export function mountLibrary(root) {
   }
 
   function bookmarkForm(record) {
-    const editor = modal(panel, record ? "编辑书签" : "新建书签", "保存");
-    const title = editor.text("名称", record?.sourceTitle);
-    title.required = false;
-    const url = editor.text("网页地址", record?.url.href);
-    url.placeholder = "https://example.com";
-    url.inputMode = "url";
-    const parent = editor.folder(folders.filter(item => item.writable), record?.parentId || scope.value);
+    const editor = createModal(panel, { title: record ? "编辑书签" : "新建书签", submitLabel: "保存" });
+    const title = editor.text("名称", record?.sourceTitle || "", { required: false });
+    const url = editor.text("网页地址", record?.url.href || "", { placeholder: "https://example.com", inputMode: "url" });
+    const parent = editor.select("所在文件夹", folders.filter(item => item.writable), record?.parentId || scope.value);
     editor.open(async () => {
       const raw = url.value.trim();
       const hasScheme = /^[a-z][a-z\d+.-]*:/i.test(raw);
       const hasPort = /^[\w.-]+:\d+(?:[/?#]|$)/.test(raw);
       const address = webAddress(hasScheme && !hasPort ? raw : "https://" + raw);
-      if (!address || /\s/.test(raw) || address.username || address.password) throw new Error("请输入有效的 HTTP 或 HTTPS 网页地址。");
+      if (!address || /\s/.test(raw) || address.username || address.password) {
+        throw new Error("请输入有效的 HTTP 或 HTTPS 网页地址。");
+      }
       const values = { title: title.value.trim() || address.hostname, url: address.href, parentId: parent.value };
       if (record) await editBookmark(api, record, values);
       else await api.create(values);
@@ -250,11 +193,11 @@ export function mountLibrary(root) {
   }
 
   function folderForm(record) {
-    const editor = modal(panel, record ? "重命名文件夹" : "新建文件夹", "保存");
-    const input = editor.text("文件夹名称", record?.title);
-    const parent = record ? null : editor.folder(folders.filter(item => item.writable), scope.value);
+    const editor = createModal(panel, { title: record ? "重命名文件夹" : "新建文件夹", submitLabel: "保存" });
+    const nameInput = editor.text("文件夹名称", record?.title || "");
+    const parent = record ? null : editor.select("所在文件夹", folders.filter(item => item.writable), scope.value);
     editor.open(async () => {
-      const title = input.value.trim();
+      const title = nameInput.value.trim();
       if (!title) throw new Error("请输入文件夹名称。");
       if (record) await api.update(record.id, { title });
       else await api.create({ title, parentId: parent.value });
@@ -264,13 +207,14 @@ export function mountLibrary(root) {
 
   function confirmRemove(record, isFolder = false) {
     const label = isFolder ? "文件夹" : "书签";
-    const confirm = modal(panel, "删除" + label, "确认删除", true);
+    const confirm = createModal(panel, { title: "删除" + label, submitLabel: "确认删除", destructive: true });
     const identity = isFolder ? record.path : record.title;
-    confirm.content.append(element("strong", "library-confirm-title", identity));
-    if (!isFolder) confirm.content.append(element("span", "library-confirm-url", record.url.href));
-    const message = isFolder && record.nonEmpty ? "此文件夹中的所有书签和子文件夹也将一并从浏览器中删除。"
+    confirm.content.append(el("strong", "daybreak-confirm-title", identity));
+    if (!isFolder) confirm.content.append(el("span", "daybreak-confirm-url", record.url.href));
+    const message = isFolder && record.nonEmpty
+      ? "此文件夹中的所有书签和子文件夹也将一并从浏览器中删除。"
       : "将从浏览器中删除这个" + label + "。";
-    confirm.content.append(element("p", "library-confirm-message", message));
+    confirm.content.append(el("p", "daybreak-confirm-message", message));
     confirm.open(async () => {
       if (isFolder && record.nonEmpty) await api.removeTree(record.id);
       else await api.remove(record.id);
@@ -292,10 +236,10 @@ export function mountLibrary(root) {
     let lastGroup;
     for (const item of visibleRows.slice(0, limit)) {
       if (item.group !== lastGroup) {
-        fragment.append(element("h3", "library-group", item.group));
+        fragment.append(el("h3", "library-group", item.group));
         lastGroup = item.group;
       }
-      const entry = element("div", "library-entry");
+      const entry = el("div", "library-entry");
       const link = linkRow(item);
       link.target = openNew ? "_blank" : "_self";
       entry.append(link);
@@ -311,7 +255,7 @@ export function mountLibrary(root) {
     }
     if (!count) {
       const message = query ? "没有匹配的网页，试试其他关键词。" : "这个位置还没有网页书签。";
-      fragment.append(element("p", "library-empty", message));
+      fragment.append(el("p", "library-empty", message));
     }
     list.replaceChildren(fragment);
     if (focusNext !== null) {
@@ -331,7 +275,7 @@ export function mountLibrary(root) {
     } catch {
       if (request !== generation) return;
       status.textContent = "";
-      list.replaceChildren(element("p", "library-empty", "读取书签失败，请检查扩展权限后重试。"));
+      list.replaceChildren(el("p", "library-empty", "读取书签失败，请检查扩展权限后重试。"));
       more.hidden = true;
     }
   }
@@ -349,6 +293,7 @@ export function mountLibrary(root) {
     limit += pageSize;
     render();
   });
+
   if (api && typeof api.getTree === "function") {
     const events = [api.onCreated, api.onRemoved, api.onChanged, api.onMoved, api.onChildrenReordered, api.onImportEnded];
     for (const event of events) {
@@ -360,14 +305,15 @@ export function mountLibrary(root) {
   } else {
     input.disabled = true;
     status.textContent = "";
-    list.replaceChildren(element("p", "library-empty", "请通过已加载的晨屿扩展打开此页，并允许读取书签。"));
+    list.replaceChildren(el("p", "library-empty", "请通过已加载的晨屿扩展打开此页，并允许读取书签。"));
   }
+
   return () => {
     active = false;
     generation++;
     clearTimeout(timer);
     for (const event of listeners) event.removeListener(schedule);
-    globalThis.chrome?.storage?.onChanged.removeListener(preferenceChanged);
+    unsubscribeStorage();
     panel.remove();
   };
 }
